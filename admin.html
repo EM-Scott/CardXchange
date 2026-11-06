@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理後台 - 卡牌重組計劃</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800">
+    <div id="app" class="max-w-3xl mx-auto p-4 sm:p-8">
+        
+        <!-- 登入介面 -->
+        <div v-if="!isLoggedIn" class="mt-20 max-w-sm mx-auto bg-white p-8 rounded-2xl shadow-lg">
+            <h2 class="text-2xl font-bold mb-6 text-center text-slate-700">後台登入</h2>
+            <div class="mb-4">
+                <input type="password" v-model="loginPassword" @keyup.enter="login" placeholder="請輸入密碼 (預設: admin)" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+            <button @click="login" class="w-full bg-blue-600 text-white p-3 rounded-lg font-bold hover:bg-blue-700 transition">登入</button>
+            <p v-if="loginError" class="text-red-500 text-sm mt-2 text-center">{{ loginError }}</p>
+        </div>
+
+        <!-- 管理介面 -->
+        <div v-else>
+            <header class="flex justify-between items-center mb-8">
+                <h1 class="text-2xl font-bold text-slate-800"><i class="fa-solid fa-gear mr-2"></i>看板管理後台</h1>
+                <div class="flex gap-2">
+                    <a href="index.html" target="_blank" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 text-sm font-medium transition">查看前台</a>
+                    <button @click="logout" class="px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 text-sm font-medium transition">登出</button>
+                </div>
+            </header>
+
+            <!-- 目標設定區 -->
+            <div class="bg-white rounded-2xl shadow p-6 mb-6">
+                <h2 class="text-lg font-bold mb-4 border-b pb-2">目標設定</h2>
+                <div class="flex flex-col md:flex-row gap-6">
+                    <div class="flex-1 space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-600 mb-1">目標金額 (NT$)</label>
+                            <input type="number" v-model.number="appData.targetAmount" @change="saveData" class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-600 mb-1">目標 PTCG 照片</label>
+                            <input type="file" accept="image/*" @change="handleImageUpload" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                            <p class="text-xs text-slate-400 mt-1">圖片會自動轉為 Base64 儲存於瀏覽器中</p>
+                        </div>
+                    </div>
+                    <div class="w-32 shrink-0 aspect-[5/7] bg-slate-50 border border-slate-200 rounded flex items-center justify-center overflow-hidden">
+                        <img v-if="appData.targetImage" :src="appData.targetImage" class="w-full h-full object-contain p-1" />
+                        <span v-else class="text-xs text-slate-400">無圖片</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 預設商品品項管理 (類似進銷存清單) -->
+            <div class="bg-white rounded-2xl shadow p-6 mb-6 border-l-4 border-emerald-500">
+                <h2 class="text-lg font-bold mb-4 border-b pb-2 flex items-center">
+                    <i class="fa-solid fa-box-open mr-2 text-emerald-600"></i>常賣商品清單管理
+                </h2>
+                <form @submit.prevent="addProduct" class="flex flex-wrap gap-4 items-end mb-4">
+                    <div class="flex-[2] min-w-[200px]">
+                        <label class="block text-sm font-medium text-slate-600 mb-1">商品名稱</label>
+                        <input type="text" v-model="newProduct.name" placeholder="例如：Mezastar 6星 固拉多" required class="w-full p-2 border rounded outline-none focus:border-emerald-500">
+                    </div>
+                    <div class="flex-1 min-w-[120px]">
+                        <label class="block text-sm font-medium text-slate-600 mb-1">預設售價 (NT$)</label>
+                        <input type="number" v-model.number="newProduct.price" required min="1" class="w-full p-2 border rounded outline-none focus:border-emerald-500">
+                    </div>
+                    <button type="submit" class="bg-emerald-600 text-white px-6 py-2 rounded font-medium hover:bg-emerald-700 h-[42px] whitespace-nowrap">建立商品</button>
+                </form>
+                
+                <!-- 已建立的商品標籤 -->
+                <div class="flex flex-wrap gap-2">
+                    <div v-for="prod in appData.products" :key="prod.id" class="bg-slate-100 border border-slate-200 rounded-full px-3 py-1.5 text-sm flex items-center gap-2 shadow-sm">
+                        <span class="font-medium text-slate-700">{{ prod.name }}</span>
+                        <span class="text-slate-500">${{ prod.price }}</span>
+                        <button @click="deleteProduct(prod.id)" class="text-red-400 hover:text-red-600 ml-1" title="刪除商品">
+                            <i class="fa-solid fa-circle-xmark"></i>
+                        </button>
+                    </div>
+                    <div v-if="!appData.products || appData.products.length === 0" class="text-sm text-slate-400 py-1">目前無預設商品，請在上方建立。</div>
+                </div>
+            </div>
+
+            <!-- 新增銷售紀錄 -->
+            <div class="bg-white rounded-2xl shadow p-6 mb-6">
+                <h2 class="text-lg font-bold mb-4 border-b pb-2"><i class="fa-solid fa-cart-plus mr-2"></i>新增銷售紀錄</h2>
+                <form @submit.prevent="addSale" class="flex flex-wrap gap-4 items-end">
+                    <div class="flex-1 min-w-[140px]">
+                        <label class="block text-sm font-medium text-slate-600 mb-1">售出日期</label>
+                        <input type="date" v-model="newItem.date" required class="w-full p-2 border rounded outline-none focus:border-blue-500">
+                    </div>
+                    
+                    <!-- 支援搜尋與下拉選單的商品名稱欄位 -->
+                    <div class="flex-[2] min-w-[200px] relative">
+                        <label class="block text-sm font-medium text-slate-600 mb-1">商品名稱 (可搜尋)</label>
+                        <input type="text" 
+                               v-model="newItem.name" 
+                               @focus="showDropdown = true"
+                               @blur="showDropdown = false"
+                               placeholder="輸入名稱，或從清單選擇" 
+                               required 
+                               class="w-full p-2 border rounded outline-none focus:border-blue-500"
+                               autocomplete="off">
+                        
+                        <!-- 搜尋結果下拉選單 -->
+                        <ul v-if="showDropdown && filteredProducts.length > 0" class="absolute z-10 w-full bg-white border border-slate-200 rounded-md mt-1 shadow-xl max-h-48 overflow-y-auto">
+                            <li v-for="prod in filteredProducts" :key="prod.id" 
+                                @mousedown.prevent="selectProduct(prod)"
+                                class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b last:border-b-0 flex justify-between items-center transition">
+                                <span class="font-medium">{{ prod.name }}</span>
+                                <span class="text-sm text-slate-500 font-bold bg-slate-100 px-2 py-0.5 rounded">${{ prod.price }}</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="flex-1 min-w-[120px]">
+                        <label class="block text-sm font-medium text-slate-600 mb-1">本次售出金額</label>
+                        <input type="number" v-model.number="newItem.price" required min="1" class="w-full p-2 border rounded outline-none focus:border-blue-500 font-bold text-blue-600">
+                    </div>
+                    <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded font-medium hover:bg-blue-700 h-[42px] whitespace-nowrap">新增紀錄</button>
+                </form>
+            </div>
+
+            <!-- 紀錄管理與設定 -->
+            <div class="bg-white rounded-2xl shadow p-6">
+                <h2 class="text-lg font-bold mb-4 border-b pb-2">管理銷售紀錄清單</h2>
+                <div class="overflow-x-auto mb-6">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="bg-slate-50 text-slate-600 border-b">
+                                <th class="p-2">日期</th>
+                                <th class="p-2">商品</th>
+                                <th class="p-2 text-right">金額</th>
+                                <th class="p-2 text-center w-16">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="item in sortedSales" :key="item.id" class="border-b hover:bg-slate-50">
+                                <td class="p-2">{{ item.date }}</td>
+                                <td class="p-2 font-medium">{{ item.name }}</td>
+                                <td class="p-2 text-right text-emerald-600 font-bold">NT$ {{ item.price.toLocaleString() }}</td>
+                                <td class="p-2 text-center">
+                                    <button @click="deleteSale(item.id)" class="text-red-500 hover:text-red-700 bg-red-50 p-1.5 rounded" title="刪除">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr v-if="!appData.sales || appData.sales.length === 0">
+                                <td colspan="4" class="p-4 text-center text-slate-400">尚無紀錄</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="flex justify-between items-center border-t pt-4">
+                    <div class="space-x-2">
+                        <button @click="exportData" class="text-sm bg-slate-200 px-3 py-1.5 rounded hover:bg-slate-300 font-medium">匯出備份 (JSON)</button>
+                        <label class="text-sm bg-slate-200 px-3 py-1.5 rounded hover:bg-slate-300 cursor-pointer font-medium">
+                            匯入備份
+                            <input type="file" accept=".json" @change="importData" class="hidden">
+                        </label>
+                    </div>
+                    <button @click="changePassword" class="text-sm text-blue-600 hover:underline">修改密碼</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, reactive, computed, onMounted } = Vue;
+
+        createApp({
+            setup() {
+                const isLoggedIn = ref(false);
+                const loginPassword = ref('');
+                const loginError = ref('');
+                
+                const appData = reactive({
+                    password: 'admin',
+                    targetAmount: 10000,
+                    targetImage: '',
+                    sales: [],
+                    products: [] // 預設商品清單
+                });
+
+                const newProduct = reactive({ name: '', price: null });
+                
+                const newItem = reactive({
+                    date: new Date().toISOString().split('T')[0],
+                    name: '',
+                    price: null
+                });
+
+                const showDropdown = ref(false);
+
+                // 初始化載入資料
+                onMounted(() => {
+                    const localData = localStorage.getItem('mezastarToPtcgData');
+                    if (localData) {
+                        const parsedData = JSON.parse(localData);
+                        Object.assign(appData, parsedData);
+                        // 確保舊資料也有 products 陣列
+                        if (!appData.products) appData.products = [];
+                    }
+                    if (sessionStorage.getItem('adminLogged') === 'true') {
+                        isLoggedIn.value = true;
+                    }
+                });
+
+                const saveData = () => {
+                    localStorage.setItem('mezastarToPtcgData', JSON.stringify(appData));
+                };
+
+                const login = () => {
+                    if (loginPassword.value === appData.password) {
+                        isLoggedIn.value = true;
+                        sessionStorage.setItem('adminLogged', 'true');
+                        loginError.value = '';
+                    } else {
+                        loginError.value = '密碼錯誤';
+                    }
+                };
+
+                const logout = () => {
+                    isLoggedIn.value = false;
+                    loginPassword.value = '';
+                    sessionStorage.removeItem('adminLogged');
+                };
+
+                const changePassword = () => {
+                    const newPwd = prompt('請輸入新密碼：');
+                    if (newPwd && newPwd.trim() !== '') {
+                        appData.password = newPwd.trim();
+                        saveData();
+                        alert('密碼修改成功！');
+                    }
+                };
+
+                const handleImageUpload = (event) => {
+                    const file = event.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            appData.targetImage = e.target.result;
+                            saveData();
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                };
+
+                // --- 預設商品管理邏輯 ---
+                const addProduct = () => {
+                    appData.products.push({
+                        id: Date.now(),
+                        name: newProduct.name,
+                        price: newProduct.price
+                    });
+                    saveData();
+                    newProduct.name = '';
+                    newProduct.price = null;
+                };
+
+                const deleteProduct = (id) => {
+                    if(confirm('確定要刪除這個預設商品嗎？')) {
+                        appData.products = appData.products.filter(p => p.id !== id);
+                        saveData();
+                    }
+                };
+
+                // 過濾符合搜尋條件的預設商品
+                const filteredProducts = computed(() => {
+                    if (!appData.products || appData.products.length === 0) return [];
+                    const keyword = newItem.name.toLowerCase();
+                    return appData.products.filter(p => p.name.toLowerCase().includes(keyword));
+                });
+
+                // 在下拉選單選取商品：自動帶入名稱與預設價格
+                const selectProduct = (prod) => {
+                    newItem.name = prod.name;
+                    newItem.price = prod.price;
+                    showDropdown.value = false; // 關閉下拉選單
+                };
+
+                // --- 銷售紀錄邏輯 ---
+                const addSale = () => {
+                    appData.sales.push({
+                        id: Date.now(),
+                        date: newItem.date,
+                        name: newItem.name,
+                        price: newItem.price
+                    });
+                    saveData();
+                    newItem.name = '';
+                    newItem.price = null;
+                };
+
+                const deleteSale = (id) => {
+                    if(confirm('確定要刪除這筆紀錄嗎？')) {
+                        appData.sales = appData.sales.filter(item => item.id !== id);
+                        saveData();
+                    }
+                };
+
+                const sortedSales = computed(() => {
+                    return [...(appData.sales || [])].sort((a, b) => new Date(b.date) - new Date(a.date));
+                });
+
+                const exportData = () => {
+                    const dataStr = JSON.stringify(appData, null, 2);
+                    const blob = new Blob([dataStr], { type: "application/json" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `mezastar-ptcg-backup-${new Date().toISOString().slice(0,10)}.json`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                };
+
+                const importData = (event) => {
+                    const file = event.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            try {
+                                const imported = JSON.parse(e.target.result);
+                                Object.assign(appData, imported);
+                                if (!appData.products) appData.products = [];
+                                saveData();
+                                alert('資料匯入成功！');
+                            } catch (err) {
+                                alert('檔案格式錯誤！');
+                            }
+                        };
+                        reader.readAsText(file);
+                    }
+                };
+
+                return {
+                    isLoggedIn, loginPassword, loginError, login, logout, changePassword,
+                    appData, newProduct, newItem, showDropdown, 
+                    saveData, handleImageUpload, 
+                    addProduct, deleteProduct, filteredProducts, selectProduct,
+                    addSale, deleteSale, sortedSales,
+                    exportData, importData
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
