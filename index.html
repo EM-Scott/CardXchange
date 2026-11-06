@@ -23,6 +23,10 @@
         .text-celebrate {
             animation: pulse-glow 2s infinite ease-in-out;
         }
+        /* 未收款的斜紋背景效果 */
+        .stripe-bg {
+            background-image: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.3) 10px, rgba(255,255,255,0.3) 20px);
+        }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen text-slate-800 font-sans">
@@ -57,7 +61,7 @@
 
             <!-- 進度數據區塊 -->
             <div class="relative z-10 flex-1 w-full">
-                <!-- 達成慶祝文字 (100%才顯示) -->
+                <!-- 達成慶祝文字 -->
                 <div v-if="isTargetReached" class="text-center md:text-left mb-2 text-celebrate">
                     <span class="inline-block bg-yellow-100 text-yellow-600 font-extrabold px-4 py-1 rounded-full text-sm border border-yellow-200">
                         🎉 恭喜！已達成 PTCG 實體卡牌兌換目標！
@@ -66,7 +70,7 @@
 
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-4 gap-4">
                     <div>
-                        <p class="text-sm text-slate-500 font-bold mb-1 flex items-center"><i class="fa-solid fa-piggy-bank mr-2 text-blue-500"></i>目前累積金額</p>
+                        <p class="text-sm text-slate-500 font-bold mb-1 flex items-center"><i class="fa-solid fa-piggy-bank mr-2 text-blue-500"></i>目前累積總額</p>
                         <p class="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r"
                            :class="isTargetReached ? 'from-yellow-500 to-orange-500' : 'from-blue-600 to-indigo-600'">
                             NT$ {{ currentTotalAmount.toLocaleString() }}
@@ -78,18 +82,40 @@
                     </div>
                 </div>
                 
-                <div class="w-full bg-slate-100 rounded-full h-8 mt-6 relative border border-slate-200 shadow-inner overflow-hidden">
-                    <div class="h-full rounded-full transition-all duration-1000 ease-out relative overflow-hidden" 
-                         :class="isTargetReached ? 'bg-gradient-to-r from-yellow-400 to-amber-500' : 'bg-gradient-to-r from-blue-400 to-indigo-500'"
-                         :style="{ width: progress + '%' }">
+                <!-- 雙層堆疊進度條 -->
+                <div class="w-full bg-slate-100 rounded-full h-8 mt-6 relative border border-slate-200 shadow-inner flex overflow-hidden">
+                    
+                    <!-- 1. 已收款層 (實心綠色) -->
+                    <div class="h-full transition-all duration-1000 ease-out bg-gradient-to-r from-emerald-400 to-emerald-500 relative"
+                         :style="{ width: cappedCollectedProgress + '%' }">
                         <div class="absolute inset-0 bg-white/20 w-full h-full transform -skew-x-12 animate-[shimmer_2s_infinite]"></div>
                     </div>
-                    <span class="absolute inset-0 flex items-center justify-center text-sm font-extrabold text-white mix-blend-difference">
-                        達成率 {{ progress }}%
+                    
+                    <!-- 2. 未收款層 (斜紋淺藍色) -->
+                    <div class="h-full transition-all duration-1000 ease-out bg-gradient-to-r from-blue-300 to-blue-400 relative"
+                         :style="{ width: cappedPendingProgress + '%' }">
+                        <div class="absolute inset-0 stripe-bg w-full h-full"></div>
+                    </div>
+
+                    <!-- 綜合%數文字疊加 -->
+                    <span class="absolute inset-0 flex items-center justify-center text-sm font-extrabold text-white" style="text-shadow: 0 1px 3px rgba(0,0,0,0.6);">
+                        總達成率 {{ totalProgressPct }}% (已收 {{ Math.floor(collectedProgressPct) }}%)
                     </span>
                 </div>
-                <p v-if="!isTargetReached" class="text-right text-xs text-slate-400 mt-2 font-medium">距離目標還差 NT$ {{ remainingAmount.toLocaleString() }}</p>
-                <p v-else class="text-right text-xs text-yellow-600 mt-2 font-bold">✨ 超出目標 NT$ {{ (currentTotalAmount - data.targetAmount).toLocaleString() }}</p>
+                
+                <!-- 進度條下方明細圖例 -->
+                <div class="flex flex-wrap justify-between items-center mt-3 gap-2">
+                    <div class="flex gap-4 text-xs font-bold">
+                        <span class="text-emerald-600 flex items-center">
+                            <i class="fa-solid fa-circle text-[10px] mr-1"></i>已收: ${{ collectedAmount.toLocaleString() }}
+                        </span>
+                        <span class="text-blue-500 flex items-center">
+                            <i class="fa-solid fa-circle-half-stroke text-[10px] mr-1"></i>未收: ${{ pendingAmount.toLocaleString() }}
+                        </span>
+                    </div>
+                    <p v-if="!isTargetReached" class="text-xs text-slate-400 font-medium">距離目標還差 NT$ {{ remainingAmount.toLocaleString() }}</p>
+                    <p v-else class="text-xs text-yellow-600 font-bold">✨ 超出目標 NT$ {{ (currentTotalAmount - data.targetAmount).toLocaleString() }}</p>
+                </div>
             </div>
         </div>
 
@@ -156,8 +182,6 @@
             setup() {
                 const data = ref({ targetAmount: 10000, targetImage: '', orders: [] });
                 const filterStatus = ref('all');
-                
-                // 用來記錄是否已經放過煙火，避免一直放
                 const hasCelebrated = ref(false);
 
                 onMounted(() => {
@@ -176,68 +200,67 @@
                             data.value.orders = parsed.orders || [];
                         }
                     }
-                    
-                    // 初始載入時如果已經 100%，就放一次煙火
-                    if (isTargetReached.value) {
-                        fireConfetti();
-                    }
+                    if (isTargetReached.value) fireConfetti();
                 });
 
-                const currentTotalAmount = computed(() => {
-                    return data.value.orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+                // --- 雙層進度計算邏輯 ---
+                const collectedAmount = computed(() => {
+                    return data.value.orders
+                        .filter(o => o.status === '已收款' || o.status === '已完成')
+                        .reduce((sum, order) => sum + (order.totalAmount || 0), 0);
                 });
+
+                const pendingAmount = computed(() => {
+                    return data.value.orders
+                        .filter(o => o.status !== '已收款' && o.status !== '已完成')
+                        .reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+                });
+
+                const currentTotalAmount = computed(() => collectedAmount.value + pendingAmount.value);
 
                 const remainingAmount = computed(() => {
                     const rem = data.value.targetAmount - currentTotalAmount.value;
                     return rem > 0 ? rem : 0;
                 });
 
-                const progress = computed(() => {
+                // 計算真實百分比
+                const collectedProgressPct = computed(() => {
                     if (data.value.targetAmount <= 0) return 0;
-                    const pct = (currentTotalAmount.value / data.value.targetAmount) * 100;
-                    return Math.min(100, Math.floor(pct)); // 最高顯示 100%
+                    return (collectedAmount.value / data.value.targetAmount) * 100;
                 });
 
-                const isTargetReached = computed(() => {
-                    return currentTotalAmount.value >= data.value.targetAmount && data.value.targetAmount > 0;
+                const pendingProgressPct = computed(() => {
+                    if (data.value.targetAmount <= 0) return 0;
+                    return (pendingAmount.value / data.value.targetAmount) * 100;
                 });
 
-                // 監聽達成率，如果突然突破 100%，觸發灑花特效
+                const totalProgressPct = computed(() => {
+                    return Math.min(100, Math.floor(collectedProgressPct.value + pendingProgressPct.value));
+                });
+
+                // 為了避免進度條超出 100% 寬度導致版面破裂，限制 CSS Width 上限
+                const cappedCollectedProgress = computed(() => Math.min(100, collectedProgressPct.value));
+                const cappedPendingProgress = computed(() => Math.min(100 - cappedCollectedProgress.value, pendingProgressPct.value));
+
+                const isTargetReached = computed(() => currentTotalAmount.value >= data.value.targetAmount && data.value.targetAmount > 0);
+
                 watch(isTargetReached, (newVal) => {
-                    if (newVal === true && !hasCelebrated.value) {
-                        fireConfetti();
-                    }
+                    if (newVal === true && !hasCelebrated.value) fireConfetti();
                 });
 
-                // --- 施放彩帶特效函數 ---
                 const fireConfetti = () => {
                     hasCelebrated.value = true;
-                    // 施放兩次，創造層次感
                     const duration = 3000;
                     const end = Date.now() + duration;
 
                     (function frame() {
-                        confetti({
-                            particleCount: 5,
-                            angle: 60,
-                            spread: 55,
-                            origin: { x: 0 },
-                            colors: ['#3b82f6', '#f59e0b', '#10b981', '#ef4444']
-                        });
-                        confetti({
-                            particleCount: 5,
-                            angle: 120,
-                            spread: 55,
-                            origin: { x: 1 },
-                            colors: ['#3b82f6', '#f59e0b', '#10b981', '#ef4444']
-                        });
-
-                        if (Date.now() < end) {
-                            requestAnimationFrame(frame);
-                        }
+                        confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 }, colors: ['#10b981', '#3b82f6', '#f59e0b'] });
+                        confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 }, colors: ['#10b981', '#3b82f6', '#f59e0b'] });
+                        if (Date.now() < end) requestAnimationFrame(frame);
                     }());
                 };
 
+                // --- 列表渲染邏輯 ---
                 const flattenedItems = computed(() => {
                     let itemsList = [];
                     data.value.orders.forEach(order => {
@@ -282,7 +305,9 @@
                 };
 
                 return { 
-                    data, currentTotalAmount, remainingAmount, progress, isTargetReached,
+                    data, currentTotalAmount, remainingAmount, isTargetReached,
+                    collectedAmount, pendingAmount, totalProgressPct, collectedProgressPct,
+                    cappedCollectedProgress, cappedPendingProgress,
                     filterStatus, filteredItems, getStatusStyle, getStatusIcon 
                 };
             }
