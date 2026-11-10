@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>⚙️ 管理後台 - 寶可夢卡牌重組計劃</title>
+    <title>⚙️ 混合管理後台 - 寶可夢卡牌重組計劃</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- 引入 SheetJS 處理 Excel 匯入 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <style>
@@ -14,75 +13,93 @@
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        @keyframes slideInDown { from { transform: translate3d(0, -100%, 0); opacity: 0; } to { transform: translate3d(0, 0, 0); opacity: 1; } }
+        .toast-enter { animation: slideInDown 0.4s ease-out forwards; }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen text-slate-800">
-    <div id="app" class="flex flex-col md:flex-row min-h-screen">
+    <div id="app" class="flex flex-col md:flex-row min-h-screen relative">
         
-        <!-- ================= 登入介面 ================= -->
+        <!-- 全域浮動通知 -->
+        <div v-if="toast.show" class="fixed top-6 right-6 z-[100] toast-enter flex items-center p-4 mb-4 text-sm rounded-xl shadow-2xl min-w-[300px]" 
+             :class="toast.type === 'error' ? 'bg-red-50 text-red-800 border-l-4 border-red-500' : 'bg-emerald-50 text-emerald-800 border-l-4 border-emerald-500'">
+            <i :class="toast.type === 'error' ? 'fa-solid fa-triangle-exclamation text-2xl mr-3 text-red-500' : 'fa-solid fa-circle-check text-2xl mr-3 text-emerald-500'"></i>
+            <div class="flex-1"><p class="font-bold text-base">{{ toast.title }}</p><p class="mt-0.5 opacity-90">{{ toast.message }}</p></div>
+            <button @click="toast.show = false" class="ml-4 text-slate-400 hover:text-slate-700 text-lg"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <!-- 登入畫面 -->
         <div v-if="!isLoggedIn" class="w-full flex items-center justify-center h-screen bg-slate-100 p-4">
             <div class="max-w-sm w-full bg-white p-8 rounded-2xl shadow-xl border border-slate-200">
                 <div class="text-center mb-6">
-                    <i class="fa-solid fa-shield-halved text-4xl text-blue-600 mb-2"></i>
-                    <h2 class="text-2xl font-bold text-slate-800">管理員登入</h2>
+                    <i class="fa-solid fa-cloud-arrow-up text-4xl text-blue-600 mb-2"></i>
+                    <h2 class="text-2xl font-bold text-slate-800">混合雲端後台</h2>
                 </div>
                 <div class="mb-4">
-                    <input type="password" v-model="loginPassword" @keyup.enter="login" placeholder="請輸入密碼 (預設: admin)" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition">
+                    <input type="password" v-model="loginPassword" @keyup.enter="login" placeholder="請輸入 API 金鑰 (密碼)" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
                 </div>
-                <button @click="login" class="w-full bg-blue-600 text-white p-3 rounded-lg font-bold hover:bg-blue-700 transition shadow-md">登入後台</button>
-                <p v-if="loginError" class="text-red-500 text-sm mt-3 text-center bg-red-50 p-2 rounded">{{ loginError }}</p>
+                <button @click="login" class="w-full bg-blue-600 text-white p-3 rounded-lg font-bold hover:bg-blue-700 shadow-md transition">登入後台</button>
             </div>
         </div>
 
-        <!-- ================= 管理後台主版面 ================= -->
+        <!-- 後台主畫面 -->
         <template v-else>
-            <!-- 行動裝置頂部導覽列 -->
             <div class="md:hidden bg-slate-900 text-white p-4 flex justify-between items-center shadow-md z-20">
-                <div class="font-bold text-lg flex items-center gap-2"><i class="fa-solid fa-bolt text-yellow-400"></i>卡牌重組計劃</div>
+                <div class="font-bold text-lg flex items-center gap-2"><i class="fa-solid fa-bolt text-yellow-400"></i>管理端</div>
                 <button @click="mobileMenuOpen = !mobileMenuOpen" class="text-2xl focus:outline-none"><i :class="mobileMenuOpen ? 'fa-solid fa-xmark' : 'fa-solid fa-bars'"></i></button>
             </div>
             
-            <!-- 側邊欄 (Sidebar) -->
             <aside :class="mobileMenuOpen ? 'block' : 'hidden'" class="md:block w-full md:w-64 bg-slate-900 text-slate-300 flex-shrink-0 md:h-screen md:sticky md:top-0 shadow-xl z-10 flex flex-col transition-all">
                 <div class="hidden md:flex p-6 items-center gap-3 border-b border-slate-800">
-                    <i class="fa-solid fa-bolt text-yellow-400 text-2xl"></i><span class="font-bold text-xl text-white tracking-wide">看板管理端</span>
+                    <i class="fa-solid fa-bolt text-yellow-400 text-2xl"></i><span class="font-bold text-xl text-white tracking-wide">看板後台</span>
                 </div>
                 <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-                    <a @click="switchTab('orders')" :class="currentTab === 'orders' ? 'bg-blue-600 text-white shadow-md' : 'hover:bg-slate-800 hover:text-white'" class="flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer transition font-medium"><i class="fa-solid fa-file-invoice-dollar w-5 text-center"></i>訂單管理</a>
-                    <a @click="switchTab('options')" :class="currentTab === 'options' ? 'bg-emerald-600 text-white shadow-md' : 'hover:bg-slate-800 hover:text-white'" class="flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer transition font-medium"><i class="fa-solid fa-list-check w-5 text-center"></i>選單選項管理</a>
-                    <a @click="switchTab('settings')" :class="currentTab === 'settings' ? 'bg-purple-600 text-white shadow-md' : 'hover:bg-slate-800 hover:text-white'" class="flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer transition font-medium"><i class="fa-solid fa-bullseye w-5 text-center"></i>目標與系統設定</a>
+                    <a @click="switchTab('orders')" :class="currentTab === 'orders' ? 'bg-blue-600 text-white shadow-md' : 'hover:bg-slate-800 hover:text-white'" class="flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer transition font-medium"><i class="fa-solid fa-file-invoice-dollar w-5 text-center"></i>訂單與雲端同步</a>
+                    <a @click="switchTab('options')" :class="currentTab === 'options' ? 'bg-emerald-600 text-white shadow-md' : 'hover:bg-slate-800 hover:text-white'" class="flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer transition font-medium"><i class="fa-solid fa-list-check w-5 text-center"></i>靜態設定編輯器</a>
                 </nav>
                 <div class="p-4 border-t border-slate-800 space-y-3">
-                    <a href="index.html" target="_blank" class="flex items-center justify-center gap-2 w-full px-4 py-2 bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700 hover:text-white transition text-sm"><i class="fa-solid fa-eye"></i> 查看公開看板</a>
+                    <a href="index.html" target="_blank" class="flex items-center justify-center gap-2 w-full px-4 py-2 bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700 hover:text-white transition text-sm"><i class="fa-solid fa-eye"></i> 預覽看板</a>
                     <button @click="logout" class="flex items-center justify-center gap-2 w-full px-4 py-2 border border-red-500/30 text-red-400 rounded-lg hover:bg-red-500/10 transition text-sm"><i class="fa-solid fa-right-from-bracket"></i> 登出</button>
                 </div>
             </aside>
 
-            <!-- 右側主要內容區 -->
             <main class="flex-1 p-4 sm:p-8 md:p-10 overflow-y-auto max-w-6xl mx-auto w-full">
                 
-                <!-- ================= 1. 訂單管理分頁 ================= -->
+                <!-- 1. 訂單管理 -->
                 <div v-show="currentTab === 'orders'" class="space-y-8 animate-fade-in">
-                    <h2 class="text-2xl font-bold text-slate-800 mb-6 border-l-4 border-blue-600 pl-3">訂單管理作業</h2>
+                    
+                    <div class="flex flex-wrap justify-between items-center mb-6 border-l-4 border-blue-600 pl-3">
+                        <div>
+                            <h2 class="text-2xl font-bold text-slate-800">訂單編輯與同步</h2>
+                            <p class="text-xs text-slate-500 mt-0.5">啟動自動抓取雲端，編輯時自動暫存本機，編輯完畢請點擊同步上傳。</p>
+                        </div>
+                        <div class="flex gap-3 mt-3 sm:mt-0">
+                            <!-- 顯示目前的狀態 -->
+                            <div v-if="apiError" class="bg-red-100 text-red-700 px-3 py-2 rounded-lg font-bold text-sm flex items-center"><i class="fa-solid fa-plug-circle-xmark mr-1.5"></i>雲端斷線 (使用本機)</div>
+                            
+                            <button @click="fetchOrdersFromCloud" :disabled="isSyncing" class="bg-blue-100 text-blue-700 px-4 py-2 rounded-lg font-bold text-sm hover:bg-blue-200 transition flex items-center">
+                                <i class="fa-solid fa-cloud-arrow-down mr-1.5" :class="{'fa-spin': isSyncing}"></i>重新抓取
+                            </button>
+                            <button @click="saveOrdersToCloud" :disabled="isSyncing" class="bg-blue-600 text-white px-5 py-2 rounded-lg font-bold text-sm hover:bg-blue-700 shadow-md transition flex items-center">
+                                <i class="fa-solid fa-cloud-arrow-up mr-1.5" :class="{'fa-bounce': isSyncing}"></i>一鍵同步至雲端
+                            </button>
+                        </div>
+                    </div>
 
                     <!-- 建立新訂單 -->
                     <div class="bg-white rounded-2xl shadow-sm border border-blue-100 overflow-hidden">
                         <div class="bg-blue-50/50 px-6 py-4 border-b border-blue-100 flex flex-wrap justify-between items-center gap-4">
-                            <h3 class="text-lg font-bold text-blue-800 flex items-center"><i class="fa-solid fa-cart-plus mr-2"></i>建立新訂單</h3>
+                            <h3 class="text-lg font-bold text-blue-800 flex items-center"><i class="fa-solid fa-cart-plus mr-2"></i>建立新訂單 (暫存本機)</h3>
                             <div class="flex flex-wrap gap-4 items-center">
-                                <div><span class="text-xs text-blue-600 font-bold block mb-1">訂單編號</span><input type="text" v-model="currentOrder.id" class="px-3 py-1.5 text-sm border rounded bg-white w-36 outline-none focus:ring-1 focus:ring-blue-500"></div>
-                                <div><span class="text-xs text-blue-600 font-bold block mb-1">日期</span><input type="date" v-model="currentOrder.date" required class="px-3 py-1.5 text-sm border rounded bg-white outline-none focus:ring-1 focus:ring-blue-500"></div>
+                                <div><span class="text-xs text-blue-600 font-bold block mb-1">訂單編號</span><input type="text" v-model="currentOrder.id" class="px-3 py-1.5 text-sm border rounded outline-none"></div>
+                                <div><span class="text-xs text-blue-600 font-bold block mb-1">日期</span><input type="date" v-model="currentOrder.date" required class="px-3 py-1.5 text-sm border rounded outline-none"></div>
                                 <div>
                                     <span class="text-xs text-blue-600 font-bold block mb-1">平台</span>
-                                    <select v-model="currentOrder.platform" class="px-3 py-1.5 text-sm border rounded bg-white w-32 outline-none focus:ring-1 focus:ring-blue-500">
-                                        <option value="">未選擇</option><option v-for="p in appData.platforms" :key="p.id" :value="p.name">{{ p.name }}</option>
-                                    </select>
+                                    <select v-model="currentOrder.platform" class="px-3 py-1.5 text-sm border rounded w-32 outline-none"><option value="">未選擇</option><option v-for="p in appConfig.platforms" :key="p.id" :value="p.name">{{ p.name }}</option></select>
                                 </div>
                                 <div>
                                     <span class="text-xs text-blue-600 font-bold block mb-1">狀態</span>
-                                    <select v-model="currentOrder.status" class="px-3 py-1.5 text-sm border rounded bg-white w-32 outline-none focus:ring-1 focus:ring-blue-500">
-                                        <option v-for="s in appData.statuses" :key="s.id" :value="s.name">{{ s.name }}</option>
-                                    </select>
+                                    <select v-model="currentOrder.status" class="px-3 py-1.5 text-sm border rounded w-32 outline-none"><option v-for="s in appConfig.statuses" :key="s.id" :value="s.name">{{ s.name }}</option></select>
                                 </div>
                             </div>
                         </div>
@@ -90,27 +107,25 @@
                         <div class="p-6">
                             <form @submit.prevent="addItemToOrder" class="flex flex-wrap gap-4 items-end bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6">
                                 <div class="flex-[2] min-w-[200px] relative">
-                                    <label class="block text-sm font-medium text-slate-600 mb-1">加入商品 (可搜尋清單)</label>
-                                    <input type="text" v-model="currentItem.name" @focus="showDropdown = true" @blur="hideDropdownDelay" placeholder="輸入名稱或選取" required class="w-full p-2.5 border rounded outline-none focus:border-blue-500" autocomplete="off">
-                                    <ul v-if="showDropdown && filteredProducts.length > 0" class="absolute z-10 w-full bg-white border border-slate-200 rounded-lg mt-1 shadow-xl max-h-48 overflow-y-auto">
-                                        <li v-for="prod in filteredProducts" :key="prod.id" @mousedown.prevent="selectProduct(prod)" class="px-4 py-2 hover:bg-blue-50 cursor-pointer border-b last:border-b-0 flex justify-between">
+                                    <label class="block text-sm font-medium text-slate-600 mb-1">加入商品 (可搜尋設定檔商品)</label>
+                                    <input type="text" v-model="currentItem.name" @focus="showDropdown = true" @blur="hideDropdownDelay" placeholder="名稱" required class="w-full p-2.5 border rounded outline-none" autocomplete="off">
+                                    <ul v-if="showDropdown && filteredProducts.length > 0" class="absolute z-10 w-full bg-white border rounded-lg mt-1 shadow-xl max-h-48 overflow-y-auto">
+                                        <li v-for="prod in filteredProducts" :key="prod.id" @mousedown.prevent="selectProduct(prod)" class="px-4 py-2 hover:bg-blue-50 cursor-pointer border-b flex justify-between">
                                             <span class="font-medium">{{ prod.name }}</span><span class="text-sm text-slate-500 font-bold">${{ prod.price }}</span>
                                         </li>
                                     </ul>
                                 </div>
-                                <div class="flex-1 min-w-[100px]"><label class="block text-sm font-medium text-slate-600 mb-1">單價</label><input type="number" v-model.number="currentItem.unitPrice" required min="0" class="w-full p-2.5 border rounded outline-none focus:border-blue-500"></div>
-                                <div class="w-20"><label class="block text-sm font-medium text-slate-600 mb-1">數量</label><input type="number" v-model.number="currentItem.quantity" required min="1" class="w-full p-2.5 border rounded outline-none focus:border-blue-500 text-center"></div>
+                                <div class="flex-1 min-w-[100px]"><label class="block text-sm font-medium text-slate-600 mb-1">單價</label><input type="number" v-model.number="currentItem.unitPrice" required min="0" class="w-full p-2.5 border rounded outline-none"></div>
+                                <div class="w-20"><label class="block text-sm font-medium text-slate-600 mb-1">數量</label><input type="number" v-model.number="currentItem.quantity" required min="1" class="w-full p-2.5 border rounded text-center"></div>
                                 <div class="w-24 text-right"><label class="block text-xs font-medium text-slate-400 mb-2">小計</label><div class="p-1 font-bold text-slate-700">${{ currentItemSubtotal }}</div></div>
-                                <button type="submit" class="bg-blue-100 text-blue-700 px-5 py-2.5 rounded font-bold hover:bg-blue-200 transition">加入明細</button>
+                                <button type="submit" class="bg-blue-100 text-blue-700 px-5 py-2.5 rounded font-bold hover:bg-blue-200">加入明細</button>
                             </form>
 
                             <div v-if="currentOrder.items.length > 0" class="mb-4 border rounded-xl overflow-hidden shadow-sm">
                                 <table class="w-full text-left text-sm">
-                                    <thead class="bg-slate-100 border-b">
-                                        <tr><th class="p-3 pl-5">商品項目</th><th class="p-3 text-right">單價</th><th class="p-3 text-center">數量</th><th class="p-3 text-right">小計</th><th class="p-3 text-center w-14">刪除</th></tr>
-                                    </thead>
+                                    <thead class="bg-slate-100 border-b"><tr><th class="p-3 pl-5">商品</th><th class="p-3 text-right">單價</th><th class="p-3 text-center">數量</th><th class="p-3 text-right">小計</th><th class="p-3 text-center">刪除</th></tr></thead>
                                     <tbody>
-                                        <tr v-for="(item, index) in currentOrder.items" :key="index" class="border-b last:border-0 hover:bg-slate-50">
+                                        <tr v-for="(item, index) in currentOrder.items" :key="index" class="border-b hover:bg-slate-50">
                                             <td class="p-3 pl-5 font-medium">{{ item.name }}</td><td class="p-3 text-right text-slate-500">${{ item.unitPrice }}</td><td class="p-3 text-center font-bold">x {{ item.quantity }}</td><td class="p-3 text-right text-blue-600 font-bold">${{ item.unitPrice * item.quantity }}</td>
                                             <td class="p-3 text-center"><button @click="removeItemFromOrder(index)" class="text-red-400 hover:text-red-600"><i class="fa-solid fa-times"></i></button></td>
                                         </tr>
@@ -121,62 +136,42 @@
                             <div class="flex justify-between items-center mt-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
                                 <div class="text-slate-500">本筆訂單共 <span class="font-bold text-blue-600">{{ currentOrder.items.length }}</span> 項</div>
                                 <div class="flex items-center gap-6">
-                                    <div class="text-right">
-                                        <span class="text-sm font-medium text-slate-500 mr-2">總金額:</span>
-                                        <span class="text-2xl font-bold text-red-500">NT$ {{ orderTotalAmount.toLocaleString() }}</span>
-                                    </div>
-                                    <button @click="saveOrder" :disabled="currentOrder.items.length === 0" class="bg-blue-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-blue-700 disabled:opacity-50 transition shadow-md flex items-center">
-                                        <i class="fa-solid fa-check mr-2"></i>送出訂單
+                                    <div class="text-right"><span class="text-sm font-medium text-slate-500 mr-2">總金額:</span><span class="text-2xl font-bold text-red-500">NT$ {{ orderTotalAmount.toLocaleString() }}</span></div>
+                                    <button @click="addOrderToList" class="bg-emerald-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-emerald-700 shadow-md flex items-center transition">
+                                        <i class="fa-solid fa-plus mr-2"></i>暫存本筆訂單
                                     </button>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- 歷史訂單管理列表 -->
+                    <!-- 歷史訂單列表 -->
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-                        <h3 class="text-lg font-bold mb-4 border-b pb-2 flex items-center"><i class="fa-solid fa-clock-rotate-left mr-2 text-slate-500"></i>歷史訂單列表</h3>
+                        <h3 class="text-lg font-bold mb-4 border-b pb-2 flex items-center"><i class="fa-solid fa-list mr-2 text-slate-500"></i>當前訂單列表 (等待同步)</h3>
+                        
                         <div class="overflow-x-auto">
                             <table class="w-full text-left border-collapse text-sm">
                                 <thead>
                                     <tr class="bg-slate-50 text-slate-600 border-b">
-                                        <th class="p-3 w-40">訂單編號 / 日期</th>
-                                        <th class="p-3 w-32">狀態與流程</th>
-                                        <th class="p-3">訂單內容摘要</th>
-                                        <th class="p-3 text-right w-28">總金額</th>
-                                        <th class="p-3 text-center w-28">操作</th>
+                                        <th class="p-3 w-40">訂單編號/日期</th><th class="p-3 w-32">狀態</th><th class="p-3">明細摘要</th><th class="p-3 text-right w-28">總金額</th><th class="p-3 text-center w-28">操作</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr v-for="order in sortedOrders" :key="order.id" class="border-b hover:bg-slate-50 transition">
-                                        <td class="p-3">
-                                            <div class="font-bold text-slate-700">{{ order.id }}</div>
-                                            <div class="text-slate-500 text-xs mt-0.5">{{ order.date }}</div>
-                                            <div class="text-xs text-indigo-500 mt-1" v-if="order.platform"><i class="fa-solid fa-store mr-1"></i>{{ order.platform }}</div>
-                                        </td>
-                                        <!-- 狀態視覺化與一鍵推進按鈕 -->
-                                        <td class="p-3">
-                                            <div :class="getStatusBadgeClass(order.status)" class="px-2.5 py-1 rounded text-xs font-bold inline-block mb-1.5 border shadow-sm">
-                                                {{ order.status || '新訂單' }}
-                                            </div>
-                                            <button v-if="getNextWorkflowStatus(order.status)" @click="advanceOrderStatus(order)" class="text-[11px] block bg-slate-100 hover:bg-blue-600 hover:text-white border border-slate-200 hover:border-blue-600 text-slate-600 px-2 py-1 rounded transition w-full text-left font-medium">
-                                                轉 {{ getNextWorkflowStatus(order.status) }} <i class="fa-solid fa-arrow-right ml-1"></i>
-                                            </button>
-                                        </td>
-                                        <td class="p-3 text-slate-600">
-                                            <div class="font-medium truncate max-w-[200px]" :title="order.items[0]?.name">{{ order.items[0]?.name }}</div>
-                                            <div v-if="order.items.length > 1" class="text-xs bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded inline-block mt-1">等 {{ order.items.length }} 項明細</div>
-                                        </td>
+                                    <tr v-for="order in sortedOrders" :key="order.id" class="border-b hover:bg-slate-50">
+                                        <!-- ⭐️ 套用 formatDate 簡化日期格式 -->
+                                        <td class="p-3"><div class="font-bold text-slate-700">{{ order.id }}</div><div class="text-slate-500 text-xs mt-0.5">{{ formatDate(order.date) }}</div><div class="text-xs text-indigo-500 mt-1" v-if="order.platform"><i class="fa-solid fa-store mr-1"></i>{{ order.platform }}</div></td>
+                                        <td class="p-3"><div :class="getStatusBadgeClass(order.status)" class="px-2.5 py-1 rounded text-xs font-bold inline-block border shadow-sm">{{ order.status || '無狀態' }}</div></td>
+                                        <td class="p-3 text-slate-600"><div class="font-medium truncate max-w-[200px]">{{ order.items[0]?.name }}</div><div v-if="order.items.length > 1" class="text-xs bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded inline-block mt-1">等 {{ order.items.length }} 項明細</div></td>
                                         <td class="p-3 text-right text-emerald-600 font-bold text-base">NT$ {{ order.totalAmount.toLocaleString() }}</td>
                                         <td class="p-3 text-center">
                                             <div class="flex justify-center gap-2">
-                                                <button @click="openEditModal(order)" class="text-blue-500 hover:text-blue-700 bg-blue-50 p-2 rounded transition" title="編輯 (可修改狀態)"><i class="fa-solid fa-pen-to-square"></i></button>
-                                                <button @click="deleteOrder(order.id)" class="text-red-500 hover:text-red-700 bg-red-50 p-2 rounded transition" title="刪除整筆"><i class="fa-solid fa-trash-can"></i></button>
+                                                <button @click="openEditModal(order)" class="text-blue-500 hover:text-blue-700 bg-blue-50 p-2 rounded"><i class="fa-solid fa-pen-to-square"></i></button>
+                                                <button @click="deleteOrder(order.id)" class="text-red-500 hover:text-red-700 bg-red-50 p-2 rounded"><i class="fa-solid fa-trash-can"></i></button>
                                             </div>
                                         </td>
                                     </tr>
-                                    <tr v-if="!appData.orders || appData.orders.length === 0">
-                                        <td colspan="5" class="p-10 text-center text-slate-400"><i class="fa-solid fa-inbox text-4xl mb-3 block opacity-20"></i>尚無訂單紀錄</td>
+                                    <tr v-if="!appOrders || appOrders.length === 0">
+                                        <td colspan="5" class="p-10 text-center text-slate-400">目前沒有訂單紀錄。</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -184,107 +179,60 @@
                     </div>
                 </div>
 
-                <!-- ================= 2. 選單與選項管理分頁 ================= -->
+                <!-- 2. 靜態設定編輯器 -->
                 <div v-show="currentTab === 'options'" class="space-y-6 animate-fade-in">
-                    <h2 class="text-2xl font-bold text-slate-800 mb-6 border-l-4 border-emerald-600 pl-3">選單與選項管理</h2>
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="flex justify-between items-center mb-6 border-l-4 border-emerald-600 pl-3">
+                        <h2 class="text-2xl font-bold text-slate-800">靜態設定編輯器 (產生 config.json)</h2>
+                        <button @click="exportConfigJson" class="bg-emerald-600 text-white px-5 py-2 rounded-lg font-bold hover:bg-emerald-700 shadow-md">
+                            <i class="fa-solid fa-file-export mr-2"></i>下載 config.json 檔案
+                        </button>
+                    </div>
+                    
+                    <!-- 系統與目標設定區 -->
+                    <div class="bg-white rounded-2xl shadow-sm p-6 border border-slate-200 mb-6">
+                        <h3 class="text-lg font-bold mb-5 flex items-center"><i class="fa-solid fa-bullseye text-purple-600 mr-2"></i>系統與看板目標設定</h3>
                         
-                        <!-- 商品清單與 Excel 匯入 -->
-                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                            <div class="flex justify-between items-center mb-4">
-                                <h3 class="font-bold text-slate-700 flex items-center"><i class="fa-solid fa-box-open mr-2 text-emerald-600"></i>預設商品</h3>
-                                <!-- Excel 匯入按鈕 -->
-                                <label class="bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded text-xs cursor-pointer hover:bg-emerald-200 font-bold transition">
-                                    <i class="fa-solid fa-file-excel mr-1"></i>Excel 匯入
-                                    <input type="file" accept=".xlsx, .xls, .csv" class="hidden" @change="importExcelProducts">
-                                </label>
-                            </div>
-                            <form @submit.prevent="addProduct" class="flex flex-col gap-3 mb-4 p-3 bg-slate-50 rounded-lg border border-slate-100">
-                                <input type="text" v-model="newProduct.name" placeholder="商品名稱" required class="w-full p-2 text-sm border rounded outline-none focus:border-emerald-500">
-                                <div class="flex gap-2">
-                                    <input type="number" v-model.number="newProduct.price" placeholder="售價" required min="0" class="w-full p-2 text-sm border rounded outline-none focus:border-emerald-500">
-                                    <button type="submit" class="bg-emerald-600 text-white px-4 rounded text-sm hover:bg-emerald-700 font-bold"><i class="fa-solid fa-plus"></i></button>
-                                </div>
-                            </form>
-                            <div class="text-xs text-slate-400 mb-2">※ Excel 匯入格式：第1欄名稱、第2欄價格(含標題)</div>
-                            <div class="flex flex-col gap-2 max-h-80 overflow-y-auto pr-1">
-                                <div v-for="prod in appData.products" :key="prod.id" class="border border-slate-200 rounded-lg px-3 py-2 text-sm flex justify-between items-center hover:border-emerald-200 transition">
-                                    <span class="font-medium text-slate-700 truncate mr-2" :title="prod.name">{{ prod.name }}</span>
-                                    <div class="flex items-center gap-3 shrink-0">
-                                        <span class="text-slate-500 bg-slate-100 px-2 py-0.5 rounded font-mono">${{ prod.price }}</span>
-                                        <button @click="deleteProduct(prod.id)" class="text-red-400 hover:text-red-600"><i class="fa-solid fa-times"></i></button>
-                                    </div>
-                                </div>
-                                <p v-if="!appData.products.length" class="text-sm text-slate-400 text-center py-4">無預設商品</p>
-                            </div>
+                        <div class="mb-5 pb-5 border-b border-slate-100">
+                            <label class="block text-sm font-bold text-slate-700 mb-1">Google Apps Script 網頁應用程式網址</label>
+                            <input type="text" v-model="appConfig.cloudApiUrl" @change="saveConfigLocalDraft" placeholder="https://script.google.com/macros/s/..." class="w-full p-2.5 border rounded-lg outline-none text-sm text-blue-700 bg-slate-50">
                         </div>
 
-                        <!-- 販售平台 -->
-                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                            <h3 class="font-bold text-slate-700 mb-4 flex items-center"><i class="fa-solid fa-store mr-2 text-indigo-600"></i>販售平台管理</h3>
-                            <form @submit.prevent="addPlatform" class="flex gap-2 mb-4 p-3 bg-slate-50 rounded-lg border border-slate-100">
-                                <input type="text" v-model="newPlatform" placeholder="平台名稱" required class="w-full p-2 text-sm border rounded outline-none focus:border-indigo-500">
-                                <button type="submit" class="bg-indigo-600 text-white px-4 rounded text-sm hover:bg-indigo-700 font-bold"><i class="fa-solid fa-plus"></i></button>
-                            </form>
-                            <div class="flex flex-col gap-2">
-                                <div v-for="plat in appData.platforms" :key="plat.id" class="border border-slate-200 rounded-lg px-3 py-2 text-sm flex justify-between items-center hover:border-indigo-200 transition">
-                                    <span class="text-slate-700 font-medium">{{ plat.name }}</span>
-                                    <button @click="deletePlatform(plat.id)" class="text-red-400 hover:text-red-600"><i class="fa-solid fa-times"></i></button>
-                                </div>
+                        <div class="flex flex-col sm:flex-row gap-6">
+                            <div class="flex-1 space-y-4">
+                                <div><label class="block text-sm font-bold text-slate-700 mb-1">目標金額 (NT$)</label><input type="number" v-model.number="appConfig.targetAmount" @change="saveConfigLocalDraft" class="w-full p-2 border rounded-lg outline-none"></div>
+                                <div><label class="block text-sm font-bold text-slate-700 mb-1">目標 PTCG 照片</label><input type="file" accept="image/*" @change="handleImageUpload" class="w-full text-sm"></div>
                             </div>
-                        </div>
-
-                        <!-- 訂單狀態 -->
-                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                            <h3 class="font-bold text-slate-700 mb-4 flex items-center"><i class="fa-solid fa-tags mr-2 text-amber-600"></i>訂單狀態管理</h3>
-                            <form @submit.prevent="addStatus" class="flex gap-2 mb-4 p-3 bg-slate-50 rounded-lg border border-slate-100">
-                                <input type="text" v-model="newStatus" placeholder="狀態名稱" required class="w-full p-2 text-sm border rounded outline-none focus:border-amber-500">
-                                <button type="submit" class="bg-amber-500 text-white px-4 rounded text-sm hover:bg-amber-600 font-bold"><i class="fa-solid fa-plus"></i></button>
-                            </form>
-                            <div class="flex flex-col gap-2">
-                                <div v-for="stat in appData.statuses" :key="stat.id" class="border border-slate-200 rounded-lg px-3 py-2 text-sm flex justify-between items-center hover:border-amber-200 transition">
-                                    <span class="text-slate-700 font-medium">{{ stat.name }}</span>
-                                    <button @click="deleteStatus(stat.id)" class="text-red-400 hover:text-red-600"><i class="fa-solid fa-times"></i></button>
-                                </div>
+                            <div class="w-32 shrink-0 aspect-[5/7] bg-slate-100 border-2 border-dashed border-slate-300 rounded-xl flex items-center justify-center overflow-hidden">
+                                <img v-if="appConfig.targetImage" :src="appConfig.targetImage" class="w-full h-full object-contain p-2" /><span v-else class="text-xs text-slate-400">無圖片</span>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- ================= 3. 目標與系統設定分頁 ================= -->
-                <div v-show="currentTab === 'settings'" class="space-y-6 animate-fade-in">
-                    <h2 class="text-2xl font-bold text-slate-800 mb-6 border-l-4 border-purple-600 pl-3">目標設定與系統備份</h2>
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div class="bg-white rounded-2xl shadow-sm p-6 border border-slate-200">
-                            <h3 class="text-lg font-bold mb-5 flex items-center"><i class="fa-solid fa-bullseye text-purple-600 mr-2"></i>看板目標設定</h3>
-                            <div class="flex flex-col sm:flex-row gap-6">
-                                <div class="flex-1 space-y-5">
-                                    <div><label class="block text-sm font-bold text-slate-700 mb-1">目標金額 (NT$)</label><input type="number" v-model.number="appData.targetAmount" @change="saveData" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"></div>
-                                    <div>
-                                        <label class="block text-sm font-bold text-slate-700 mb-1">目標 PTCG照片</label>
-                                        <input type="file" accept="image/*" @change="handleImageUpload" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:font-bold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 cursor-pointer">
-                                    </div>
-                                </div>
-                                <div class="w-32 shrink-0 aspect-[5/7] bg-slate-100 border-2 border-dashed border-slate-300 rounded-xl flex items-center justify-center overflow-hidden">
-                                    <img v-if="appData.targetImage" :src="appData.targetImage" class="w-full h-full object-contain p-2" /><span v-else class="text-xs text-slate-400 font-medium">無圖片</span>
-                                </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="font-bold text-slate-700 flex items-center"><i class="fa-solid fa-box-open mr-2 text-emerald-600"></i>預設商品</h3>
+                            </div>
+                            <form @submit.prevent="addProduct" class="flex flex-col gap-3 mb-4 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                                <input type="text" v-model="newProduct.name" placeholder="商品名稱" required class="w-full p-2 text-sm border rounded">
+                                <div class="flex gap-2"><input type="number" v-model.number="newProduct.price" placeholder="售價" required min="0" class="w-full p-2 text-sm border rounded"><button type="submit" class="bg-emerald-600 text-white px-4 rounded text-sm"><i class="fa-solid fa-plus"></i></button></div>
+                            </form>
+                            <div class="flex flex-col gap-2 max-h-80 overflow-y-auto pr-1">
+                                <div v-for="prod in appConfig.products" :key="prod.id" class="border border-slate-200 rounded-lg px-3 py-2 text-sm flex justify-between items-center"><span class="font-medium text-slate-700 truncate mr-2">{{ prod.name }}</span><div class="flex items-center gap-3 shrink-0"><span class="text-slate-500 bg-slate-100 px-2 py-0.5 rounded font-mono">${{ prod.price }}</span><button @click="deleteProduct(prod.id)" class="text-red-400"><i class="fa-solid fa-times"></i></button></div></div>
                             </div>
                         </div>
-                        <div class="bg-white rounded-2xl shadow-sm p-6 border border-slate-200">
-                            <h3 class="text-lg font-bold mb-5 flex items-center"><i class="fa-solid fa-database text-slate-600 mr-2"></i>系統資料保護</h3>
-                            <div class="space-y-4">
-                                <div class="p-4 bg-blue-50 border border-blue-100 rounded-xl flex justify-between items-center">
-                                    <div><div class="font-bold text-blue-800">下載備份 (JSON)</div><div class="text-xs text-blue-600 mt-1">保護您的資料，請定期下載備份</div></div>
-                                    <button @click="exportData" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 shadow-sm"><i class="fa-solid fa-download mr-1"></i>匯出</button>
-                                </div>
-                                <div class="p-4 bg-emerald-50 border border-emerald-100 rounded-xl flex justify-between items-center">
-                                    <div><div class="font-bold text-emerald-800">還原備份資料</div><div class="text-xs text-emerald-600 mt-1">匯入先前的 JSON 備份檔(會覆蓋)</div></div>
-                                    <label class="bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-emerald-700 shadow-sm cursor-pointer"><i class="fa-solid fa-upload mr-1"></i>匯入<input type="file" accept=".json" @change="importData" class="hidden"></label>
-                                </div>
-                                <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl flex justify-between items-center">
-                                    <div><div class="font-bold text-slate-700">管理員密碼</div></div>
-                                    <button @click="changePassword" class="bg-slate-700 text-white px-4 py-2 rounded-lg font-medium hover:bg-slate-800"><i class="fa-solid fa-key mr-1"></i>修改</button>
-                                </div>
+
+                        <div class="space-y-6">
+                            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                                <h3 class="font-bold text-slate-700 mb-4 flex items-center"><i class="fa-solid fa-store mr-2 text-indigo-600"></i>平台管理</h3>
+                                <form @submit.prevent="addPlatform" class="flex gap-2 mb-4 p-3 bg-slate-50 rounded-lg border"><input type="text" v-model="newPlatform" placeholder="平台名稱" required class="w-full p-2 text-sm border rounded"><button type="submit" class="bg-indigo-600 text-white px-4 rounded text-sm"><i class="fa-solid fa-plus"></i></button></form>
+                                <div class="flex flex-col gap-2"><div v-for="plat in appConfig.platforms" :key="plat.id" class="border rounded-lg px-3 py-2 text-sm flex justify-between items-center"><span class="font-medium">{{ plat.name }}</span><button @click="deletePlatform(plat.id)" class="text-red-400"><i class="fa-solid fa-times"></i></button></div></div>
+                            </div>
+
+                            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                                <h3 class="font-bold text-slate-700 mb-4 flex items-center"><i class="fa-solid fa-tags mr-2 text-amber-600"></i>訂單狀態選項</h3>
+                                <form @submit.prevent="addStatus" class="flex gap-2 mb-4 p-3 bg-slate-50 rounded-lg border"><input type="text" v-model="newStatus" placeholder="狀態名稱" required class="w-full p-2 text-sm border rounded"><button type="submit" class="bg-amber-500 text-white px-4 rounded text-sm"><i class="fa-solid fa-plus"></i></button></form>
+                                <div class="flex flex-col gap-2"><div v-for="stat in appConfig.statuses" :key="stat.id" class="border rounded-lg px-3 py-2 text-sm flex justify-between items-center"><span class="font-medium">{{ stat.name }}</span><button @click="deleteStatus(stat.id)" class="text-red-400"><i class="fa-solid fa-times"></i></button></div></div>
                             </div>
                         </div>
                     </div>
@@ -292,220 +240,306 @@
             </main>
         </template>
 
-        <!-- ================= 編輯訂單 Modal ================= -->
-        <div v-if="editModalOpen" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+        <!-- 編輯訂單 Modal -->
+        <div v-if="editModalOpen" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
-                <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
-                    <h3 class="text-xl font-bold text-slate-800"><i class="fa-solid fa-pen-to-square mr-2 text-blue-600"></i>編輯訂單內容</h3>
-                    <button @click="editModalOpen = false" class="text-slate-400 hover:text-slate-600 text-2xl focus:outline-none"><i class="fa-solid fa-xmark"></i></button>
-                </div>
+                <div class="px-6 py-4 border-b flex justify-between items-center bg-slate-50"><h3 class="text-xl font-bold text-slate-800">編輯訂單內容</h3><button @click="editModalOpen = false" class="text-slate-400 hover:text-slate-600 text-2xl"><i class="fa-solid fa-xmark"></i></button></div>
                 <div class="p-6 overflow-y-auto flex-1">
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                        <div><label class="block text-xs font-bold text-slate-500 mb-1">訂單編號</label><input type="text" v-model="editingOrder.id" class="w-full p-2 border rounded focus:border-blue-500 outline-none"></div>
-                        <div><label class="block text-xs font-bold text-slate-500 mb-1">日期</label><input type="date" v-model="editingOrder.date" required class="w-full p-2 border rounded focus:border-blue-500 outline-none"></div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 mb-1">平台</label>
-                            <select v-model="editingOrder.platform" class="w-full p-2 border rounded outline-none focus:border-blue-500"><option value="">無</option><option v-for="p in appData.platforms" :value="p.name">{{ p.name }}</option></select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 mb-1">狀態 (可退回/修改)</label>
-                            <select v-model="editingOrder.status" class="w-full p-2 border rounded outline-none focus:border-blue-500"><option value="">無</option><option v-for="s in appData.statuses" :value="s.name">{{ s.name }}</option></select>
-                        </div>
+                        <div><label class="block text-xs font-bold text-slate-500 mb-1">訂單編號</label><input type="text" v-model="editingOrder.id" class="w-full p-2 border rounded"></div>
+                        <div><label class="block text-xs font-bold text-slate-500 mb-1">日期</label><input type="date" v-model="editingOrder.date" required class="w-full p-2 border rounded"></div>
+                        <div><label class="block text-xs font-bold text-slate-500 mb-1">平台</label><select v-model="editingOrder.platform" class="w-full p-2 border rounded"><option value="">無</option><option v-for="p in appConfig.platforms" :value="p.name">{{ p.name }}</option></select></div>
+                        <div><label class="block text-xs font-bold text-slate-500 mb-1">狀態</label><select v-model="editingOrder.status" class="w-full p-2 border rounded"><option value="">無</option><option v-for="s in appConfig.statuses" :value="s.name">{{ s.name }}</option></select></div>
                     </div>
-                    <div class="border border-slate-200 rounded-xl overflow-hidden mb-4">
-                        <div class="bg-slate-100 px-4 py-2 font-bold text-sm text-slate-700">訂單明細</div>
-                        <table class="w-full text-left text-sm">
-                            <thead class="bg-slate-50 border-b text-slate-500"><tr><th class="p-2 pl-4">商品</th><th class="p-2 text-right">單價</th><th class="p-2 text-center w-20">數量</th><th class="p-2 text-right">小計</th><th class="p-2 text-center w-12">刪</th></tr></thead>
+                    <div class="border rounded-xl overflow-hidden mb-4">
+                        <table class="w-full text-left text-sm"><thead class="bg-slate-50 border-b text-slate-500"><tr><th class="p-2 pl-4">商品</th><th class="p-2 text-right">單價</th><th class="p-2 text-center w-20">數量</th><th class="p-2 text-right">小計</th><th class="p-2 text-center w-12">刪</th></tr></thead>
                             <tbody>
-                                <tr v-for="(item, index) in editingOrder.items" :key="index" class="border-b last:border-0">
-                                    <td class="p-2 pl-4"><input type="text" v-model="item.name" class="w-full border rounded px-2 py-1 outline-none"></td>
-                                    <td class="p-2"><input type="number" v-model.number="item.unitPrice" class="w-full border rounded px-2 py-1 outline-none text-right"></td>
-                                    <td class="p-2"><input type="number" v-model.number="item.quantity" class="w-full border rounded px-2 py-1 outline-none text-center"></td>
-                                    <td class="p-2 text-right font-bold text-slate-600">${{ item.unitPrice * item.quantity }}</td>
-                                    <td class="p-2 text-center"><button @click="editingOrder.items.splice(index,1)" class="text-red-500 hover:text-red-700"><i class="fa-solid fa-trash-can"></i></button></td>
-                                </tr>
-                                <tr class="bg-blue-50/50"><td colspan="5" class="p-3 text-center"><button @click="editingOrder.items.push({name:'', unitPrice:0, quantity:1})" class="text-blue-600 font-medium text-sm"><i class="fa-solid fa-plus mr-1"></i>增加一列空白</button></td></tr>
+                                <tr v-for="(item, index) in editingOrder.items" :key="index" class="border-b"><td class="p-2 pl-4"><input type="text" v-model="item.name" class="w-full border rounded px-2 py-1"></td><td class="p-2"><input type="number" v-model.number="item.unitPrice" class="w-full border rounded px-2 py-1 text-right"></td><td class="p-2"><input type="number" v-model.number="item.quantity" class="w-full border rounded px-2 py-1 text-center"></td><td class="p-2 text-right font-bold">${{ item.unitPrice * item.quantity }}</td><td class="p-2 text-center"><button @click="editingOrder.items.splice(index,1)" class="text-red-500"><i class="fa-solid fa-trash-can"></i></button></td></tr>
+                                <tr class="bg-blue-50/50"><td colspan="5" class="p-3 text-center"><button @click="editingOrder.items.push({name:'', unitPrice:0, quantity:1})" class="text-blue-600 text-sm"><i class="fa-solid fa-plus mr-1"></i>增加一列</button></td></tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
-                <div class="px-6 py-4 border-t border-slate-200 bg-slate-50 flex justify-between items-center">
-                    <div class="font-bold text-slate-600">重算總額: <span class="text-xl text-red-500 ml-2">NT$ {{ editingOrderTotal }}</span></div>
-                    <div class="space-x-3">
-                        <button @click="editModalOpen = false" class="px-5 py-2 text-slate-600 font-medium hover:bg-slate-200 rounded-lg">取消</button>
-                        <button @click="saveEditOrder" class="px-5 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-md">儲存變更</button>
-                    </div>
-                </div>
+                <div class="px-6 py-4 border-t bg-slate-50 flex justify-between items-center"><div class="font-bold text-slate-600">重算總額: <span class="text-xl text-red-500 ml-2">NT$ {{ editingOrderTotal }}</span></div><div class="space-x-3"><button @click="editModalOpen = false" class="px-5 py-2 text-slate-600 rounded-lg">取消</button><button @click="saveEditOrder" class="px-5 py-2 bg-blue-600 text-white font-bold rounded-lg shadow-md">儲存變更</button></div></div>
             </div>
         </div>
-
     </div>
 
     <script>
         const { createApp, ref, reactive, computed, onMounted } = Vue;
+        const CONFIG_URL = "config.json";
+
+        const fetchWithTimeout = async (url, timeout = 8000, options = {}) => {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), timeout);
+            try {
+                const response = await fetch(url, { signal: controller.signal, ...options });
+                clearTimeout(timer);
+                return response;
+            } catch (err) {
+                clearTimeout(timer);
+                throw err;
+            }
+        };
 
         createApp({
             setup() {
+                const isSyncing = ref(false);
+                const apiError = ref(false);
                 const isLoggedIn = ref(false);
                 const loginPassword = ref('');
-                const loginError = ref('');
-                const currentTab = ref('orders'); 
+                const currentTab = ref('orders');
                 const mobileMenuOpen = ref(false);
                 
-                // 定義出貨標準流程 (用來控制一鍵推進的按鈕邏輯)
-                const defaultWorkflow = ['新訂單', '打包中', '已出貨', '已收款'];
+                const toast = reactive({ show: false, title: '', message: '', type: 'success' });
+                let toastTimer = null;
+                const showToast = (title, message, type = 'success') => {
+                    toast.title = title; toast.message = message; toast.type = type; toast.show = true;
+                    if(toastTimer) clearTimeout(toastTimer);
+                    toastTimer = setTimeout(() => { toast.show = false; }, 5000);
+                };
 
-                const appData = reactive({
-                    password: 'admin', targetAmount: 10000, targetImage: '',
-                    products: [], platforms: [], statuses: [], orders: []
-                });
+                const defaultConfig = {
+                    targetAmount: 10000, targetImage: "", cloudApiUrl: "", products: [],
+                    platforms: [{ id: 1, name: "蝦皮購物" }, { id: 2, name: "面交" }],
+                    statuses: [{ id: 1, name: "新訂單" }, { id: 4, name: "已收款" }]
+                };
+
+                const appConfig = reactive(JSON.parse(JSON.stringify(defaultConfig)));
+                const appOrders = ref([]);
 
                 const newProduct = reactive({ name: '', price: null });
                 const newPlatform = ref('');
                 const newStatus = ref('');
                 const showDropdown = ref(false);
 
+                // ⭐️ 日期格式化工具：將長串時間簡化為 YYYY-MM-DD
+                const formatDate = (dateStr) => {
+                    if (!dateStr) return '';
+                    try {
+                        const d = new Date(dateStr);
+                        if (isNaN(d.getTime())) return dateStr;
+                        const year = d.getFullYear();
+                        const month = String(d.getMonth() + 1).padStart(2, '0');
+                        const day = String(d.getDate()).padStart(2, '0');
+                        return `${year}-${month}-${day}`;
+                    } catch (e) {
+                        return dateStr;
+                    }
+                };
+
+                const currentOrder = reactive({ id: '', date: '', platform: '', status: '', items: [] });
                 const generateOrderId = () => { const d = new Date(); return `ORD-${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}-${Math.floor(1000+Math.random()*9000)}`; };
                 
-                // 新訂單預設帶入 '新訂單' 狀態
-                const currentOrder = reactive({ id: generateOrderId(), date: new Date().toISOString().split('T')[0], platform: '', status: '新訂單', items: [] });
+                const resetCurrentOrder = () => {
+                    currentOrder.id = generateOrderId();
+                    currentOrder.date = new Date().toISOString().split('T')[0];
+                    currentOrder.platform = appConfig.platforms.length > 0 ? appConfig.platforms[0].name : '';
+                    currentOrder.status = appConfig.statuses.length > 0 ? appConfig.statuses[0].name : '';
+                    currentOrder.items = [];
+                };
+
                 const currentItem = reactive({ name: '', unitPrice: null, quantity: 1 });
 
                 const editModalOpen = ref(false);
                 const editingOrder = reactive({ id: '', date: '', platform: '', status: '', items: [] });
                 const editingOrderOriginalId = ref('');
 
-                onMounted(() => {
-                    const localData = localStorage.getItem('mezastarToPtcgData');
-                    if (localData) {
-                        const parsedData = JSON.parse(localData);
-                        if (parsedData.sales && (!parsedData.orders || parsedData.orders.length === 0)) {
-                            parsedData.orders = parsedData.sales.map(sale => ({
-                                id: `MIG-${sale.id}`, date: sale.date, platform: '', status: '已收款',
-                                items: [{ name: sale.name, unitPrice: sale.price, quantity: 1 }], totalAmount: sale.price
-                            }));
-                            delete parsedData.sales;
-                        }
-                        Object.assign(appData, parsedData);
-                    }
+                onMounted(async () => {
+                    try {
+                        const res = await fetchWithTimeout(CONFIG_URL, 3000);
+                        if (res.ok) { Object.assign(appConfig, { ...defaultConfig, ...(await res.json()) }); }
+                    } catch(e) {}
                     
-                    // 防呆：確保標準狀態必定存在選項中
-                    if (!appData.products) appData.products = [];
-                    if (!appData.orders) appData.orders = [];
-                    if (!appData.platforms || appData.platforms.length === 0) appData.platforms = [{id: 1, name: '蝦皮購物'}, {id: 2, name: 'Facebook社團'}, {id: 3, name: '旋轉拍賣'}, {id: 4, name: '面交'}];
-                    
-                    // 若狀態為空，注入標準流程
-                    if (!appData.statuses || appData.statuses.length === 0) {
-                        appData.statuses = defaultWorkflow.map((name, i) => ({id: i+1, name: name}));
-                    }
+                    const localDraft = localStorage.getItem('mezastarConfigDraft');
+                    if (localDraft) { try { Object.assign(appConfig, JSON.parse(localDraft)); } catch(e){} }
 
-                    if (sessionStorage.getItem('adminLogged') === 'true') isLoggedIn.value = true;
+                    resetCurrentOrder();
+
+                    if (sessionStorage.getItem('adminLogged') === 'true') {
+                        isLoggedIn.value = true;
+                        loginPassword.value = sessionStorage.getItem('adminKey') || '';
+                        
+                        if (appConfig.cloudApiUrl) {
+                            await fetchOrdersFromCloud();
+                        } else {
+                            loadLocalOrders();
+                        }
+                    }
                 });
 
-                const saveData = () => { localStorage.setItem('mezastarToPtcgData', JSON.stringify(appData)); };
-                const switchTab = (tabName) => { currentTab.value = tabName; mobileMenuOpen.value = false; };
-                const login = () => { if (loginPassword.value === appData.password) { isLoggedIn.value = true; sessionStorage.setItem('adminLogged', 'true'); loginError.value = ''; } else { loginError.value = '密碼錯誤'; } };
-                const logout = () => { isLoggedIn.value = false; loginPassword.value = ''; sessionStorage.removeItem('adminLogged'); };
-                const changePassword = () => { const newPwd = prompt('請輸入新密碼：'); if (newPwd && newPwd.trim() !== '') { appData.password = newPwd.trim(); saveData(); alert('密碼修改成功！'); } };
-                const handleImageUpload = (event) => { const file = event.target.files[0]; if (file) { const reader = new FileReader(); reader.onload = (e) => { appData.targetImage = e.target.result; saveData(); }; reader.readAsDataURL(file); } };
+                const login = async () => { 
+                    if(loginPassword.value) { 
+                        isLoggedIn.value = true; 
+                        sessionStorage.setItem('adminLogged', 'true'); 
+                        sessionStorage.setItem('adminKey', loginPassword.value); 
+                        
+                        if (appConfig.cloudApiUrl) await fetchOrdersFromCloud();
+                        else loadLocalOrders();
+                    } 
+                };
+                
+                const logout = () => { isLoggedIn.value = false; loginPassword.value = ''; sessionStorage.removeItem('adminLogged'); sessionStorage.removeItem('adminKey'); };
+                const switchTab = (tab) => { currentTab.value = tab; mobileMenuOpen.value = false; };
 
-                // --- 狀態標籤與流程推進 ---
-                const getStatusBadgeClass = (status) => {
-                    if(!status) return 'bg-slate-100 text-slate-700 border-slate-200';
-                    if(status === '新訂單') return 'bg-pink-100 text-pink-700 border-pink-200';
-                    if(status === '打包中') return 'bg-amber-100 text-amber-700 border-amber-200';
-                    if(status === '已出貨') return 'bg-blue-100 text-blue-700 border-blue-200';
-                    if(status === '已收款') return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-                    return 'bg-slate-100 text-slate-700 border-slate-200'; // 自訂狀態預設顏色
+                const saveConfigLocalDraft = () => { localStorage.setItem('mezastarConfigDraft', JSON.stringify(appConfig)); showToast("草稿已暫存", "設定檔變更已暫存於本機。", "success"); };
+                const exportConfigJson = () => {
+                    const dataStr = JSON.stringify(appConfig, null, 2);
+                    const blob = new Blob([dataStr], { type: "application/json" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a'); a.href = url; a.download = `config.json`; a.click(); URL.revokeObjectURL(url);
+                    showToast("下載成功", "請記得將檔案上傳覆蓋舊檔。", "success");
                 };
 
-                const getNextWorkflowStatus = (currentStatus) => {
-                    const idx = defaultWorkflow.indexOf(currentStatus || '新訂單');
-                    if (idx >= 0 && idx < defaultWorkflow.length - 1) {
-                        return defaultWorkflow[idx + 1];
+                const saveOrdersToLocal = () => {
+                    localStorage.setItem('mezastarOrdersCache', JSON.stringify(appOrders.value));
+                };
+
+                const loadLocalOrders = () => {
+                    const cached = localStorage.getItem('mezastarOrdersCache');
+                    if (cached) {
+                        try { appOrders.value = JSON.parse(cached); } catch(e){}
                     }
-                    return null; // 不在標準流程內或已是最後一步，不顯示按鈕
                 };
 
-                const advanceOrderStatus = (order) => {
-                    const next = getNextWorkflowStatus(order.status);
-                    if(next) { order.status = next; saveData(); }
-                };
-
-                // --- Excel 匯入商品 ---
-                const importExcelProducts = (event) => {
-                    const file = event.target.files[0];
-                    if (!file) return;
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        try {
-                            const data = new Uint8Array(e.target.result);
-                            const workbook = XLSX.read(data, {type: 'array'});
-                            const firstSheetName = workbook.SheetNames[0];
-                            const worksheet = workbook.Sheets[firstSheetName];
-                            // {header: 1} 會將資料轉成二維陣列 [ ['名稱', '價格'], ['固拉多', 100], ... ]
-                            const jsonArr = XLSX.utils.sheet_to_json(worksheet, {header: 1});
-                            
-                            let addedCount = 0;
-                            // 從第二列開始讀取 (略過標題)
-                            for (let i = 1; i < jsonArr.length; i++) {
-                                const row = jsonArr[i];
-                                if (row[0] && row[1] != null && !isNaN(row[1])) {
-                                    appData.products.push({ id: Date.now() + i, name: String(row[0]), price: Number(row[1]) });
-                                    addedCount++;
-                                }
-                            }
-                            saveData();
-                            alert(`成功匯入 ${addedCount} 筆商品！`);
-                        } catch (err) {
-                            alert('Excel 解析失敗，請確認檔案格式是否正確。');
+                const fetchOrdersFromCloud = async () => {
+                    if (!appConfig.cloudApiUrl) { apiError.value = true; loadLocalOrders(); return; }
+                    isSyncing.value = true;
+                    apiError.value = false;
+                    try {
+                        const res = await fetchWithTimeout(appConfig.cloudApiUrl, 6000);
+                        if (!res.ok) throw new Error("HTTP 狀態碼異常");
+                        const data = await res.json();
+                        
+                        if (Array.isArray(data)) {
+                            appOrders.value = data;
+                            saveOrdersToLocal();
+                            showToast("雲端同步", "已取得最新雲端訂單", "success");
+                        } else if (data && Array.isArray(data.orders)) {
+                            appOrders.value = data.orders;
+                            saveOrdersToLocal();
+                        } else {
+                            throw new Error("格式錯誤");
                         }
-                        // 重置 input file 確保下次可以重選相同檔案
-                        event.target.value = '';
-                    };
-                    reader.readAsArrayBuffer(file);
+                    } catch (err) {
+                        console.error("載入失敗", err);
+                        apiError.value = true;
+                        loadLocalOrders();
+                        showToast("無法連線雲端", "已為您切換至本機暫存模式，請稍後再重試", "error");
+                    } finally {
+                        isSyncing.value = false;
+                    }
                 };
 
-                // --- 清單選項邏輯 ---
-                const addProduct = () => { appData.products.push({ id: Date.now(), name: newProduct.name, price: newProduct.price }); saveData(); newProduct.name = ''; newProduct.price = null; };
-                const deleteProduct = (id) => { if(confirm('確定刪除這項商品嗎？')) { appData.products = appData.products.filter(p => p.id !== id); saveData(); } };
-                const addPlatform = () => { if (newPlatform.value.trim()) { appData.platforms.push({ id: Date.now(), name: newPlatform.value.trim() }); saveData(); newPlatform.value = ''; } };
-                const deletePlatform = (id) => { if(confirm('刪除平台選項？')) { appData.platforms = appData.platforms.filter(p => p.id !== id); saveData(); } };
-                const addStatus = () => { if (newStatus.value.trim()) { appData.statuses.push({ id: Date.now(), name: newStatus.value.trim() }); saveData(); newStatus.value = ''; } };
-                const deleteStatus = (id) => { if(confirm('刪除狀態選項？')) { appData.statuses = appData.statuses.filter(s => s.id !== id); saveData(); } };
+                const saveOrdersToCloud = async () => {
+                    if (!appConfig.cloudApiUrl) { showToast("缺少 API 網址", "請先設定網址", "error"); return; }
+                    isSyncing.value = true;
+                    try {
+                        const payload = { authKey: loginPassword.value, orders: appOrders.value };
+                        const res = await fetchWithTimeout(appConfig.cloudApiUrl, 8000, { 
+                            method: "POST", 
+                            body: JSON.stringify(payload),
+                            headers: { "Content-Type": "text/plain;charset=utf-8" } 
+                        });
+                        
+                        if (!res.ok) throw new Error("HTTP 異常");
+                        const result = await res.json();
+                        
+                        if (result.status === "error") {
+                            showToast("同步遭拒", result.message, "error");
+                        } else {
+                            apiError.value = false;
+                            showToast("同步成功", "所有訂單已安全寫入 Google 試算表", "success");
+                        }
+                    } catch (err) {
+                        apiError.value = true;
+                        showToast("同步失敗", "無法連線，您的訂單仍安全暫存於本機", "error");
+                    } finally {
+                        isSyncing.value = false;
+                    }
+                };
 
-                // --- 訂單建置器邏輯 ---
-                const filteredProducts = computed(() => { if (!appData.products) return []; return appData.products.filter(p => p.name.toLowerCase().includes(currentItem.name.toLowerCase())); });
+                const handleImageUpload = (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (evt) => { appConfig.targetImage = evt.target.result; saveConfigLocalDraft(); };
+                        reader.readAsDataURL(file);
+                    }
+                };
+
+                const addProduct = () => { appConfig.products.push({ id: Date.now(), name: newProduct.name, price: newProduct.price }); saveConfigLocalDraft(); newProduct.name = ''; newProduct.price = null; };
+                const deleteProduct = (id) => { if(confirm('刪除？')) { appConfig.products = appConfig.products.filter(p => p.id !== id); saveConfigLocalDraft(); } };
+                const addPlatform = () => { if (newPlatform.value.trim()) { appConfig.platforms.push({ id: Date.now(), name: newPlatform.value.trim() }); saveConfigLocalDraft(); newPlatform.value = ''; } };
+                const deletePlatform = (id) => { if(confirm('刪除？')) { appConfig.platforms = appConfig.platforms.filter(p => p.id !== id); saveConfigLocalDraft(); } };
+                const addStatus = () => { if (newStatus.value.trim()) { appConfig.statuses.push({ id: Date.now(), name: newStatus.value.trim() }); saveConfigLocalDraft(); newStatus.value = ''; } };
+                const deleteStatus = (id) => { if(confirm('刪除？')) { appConfig.statuses = appConfig.statuses.filter(s => s.id !== id); saveConfigLocalDraft(); } };
+
+                const filteredProducts = computed(() => appConfig.products.filter(p => p.name.toLowerCase().includes(currentItem.name.toLowerCase())));
                 const selectProduct = (prod) => { currentItem.name = prod.name; currentItem.unitPrice = prod.price; currentItem.quantity = 1; showDropdown.value = false; };
                 const hideDropdownDelay = () => { setTimeout(() => { showDropdown.value = false; }, 200); };
-                const currentItemSubtotal = computed(() => { return (currentItem.unitPrice && currentItem.quantity) ? (currentItem.unitPrice * currentItem.quantity) : 0; });
-                const addItemToOrder = () => { currentOrder.items.push({ name: currentItem.name, unitPrice: currentItem.unitPrice, quantity: currentItem.quantity }); currentItem.name = ''; currentItem.unitPrice = null; currentItem.quantity = 1; };
-                const removeItemFromOrder = (index) => { currentOrder.items.splice(index, 1); };
-                const orderTotalAmount = computed(() => { return currentOrder.items.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0); });
-                const saveOrder = () => {
-                    appData.orders.push({ id: currentOrder.id, date: currentOrder.date, platform: currentOrder.platform, status: currentOrder.status, items: [...currentOrder.items], totalAmount: orderTotalAmount.value });
-                    saveData(); currentOrder.id = generateOrderId(); currentOrder.items = []; currentOrder.platform = ''; currentOrder.status = '新訂單'; alert('訂單新增成功！');
+                const currentItemSubtotal = computed(() => (currentItem.unitPrice && currentItem.quantity) ? (currentItem.unitPrice * currentItem.quantity) : 0);
+                
+                const addItemToOrder = () => {
+                    if (!currentItem.name) return;
+                    currentOrder.items.push({ name: currentItem.name, unitPrice: currentItem.unitPrice, quantity: currentItem.quantity });
+                    currentItem.name = ''; currentItem.unitPrice = null; currentItem.quantity = 1;
                 };
 
-                const sortedOrders = computed(() => { return [...(appData.orders || [])].sort((a, b) => new Date(b.date) - new Date(a.date)); });
-                const deleteOrder = (id) => { if(confirm('確定要刪除這筆訂單嗎？')) { appData.orders = appData.orders.filter(order => order.id !== id); saveData(); } };
+                const removeItemFromOrder = (i) => { currentOrder.items.splice(i, 1); };
+                const orderTotalAmount = computed(() => currentOrder.items.reduce((sum, i) => sum + (i.unitPrice * i.quantity), 0));
+                
+                const addOrderToList = () => {
+                    if (currentOrder.items.length === 0) { showToast("無法儲存", "請至少加入一項商品明細", "error"); return; }
+                    appOrders.value.push({
+                        id: currentOrder.id, date: currentOrder.date, platform: currentOrder.platform, status: currentOrder.status,
+                        items: [...currentOrder.items], totalAmount: orderTotalAmount.value
+                    });
+                    
+                    saveOrdersToLocal();
+                    showToast("已暫存", "本筆訂單已暫存於本機，別忘了點擊「一鍵同步至雲端」！", "success");
+                    resetCurrentOrder();
+                };
 
-                // --- 編輯 Modal 邏輯 ---
-                const openEditModal = (order) => { Object.assign(editingOrder, JSON.parse(JSON.stringify(order))); editingOrderOriginalId.value = order.id; editModalOpen.value = true; };
-                const editingOrderTotal = computed(() => { return editingOrder.items.reduce((sum, item) => sum + ((item.unitPrice||0) * (item.quantity||0)), 0); });
-                const saveEditOrder = () => { const index = appData.orders.findIndex(o => o.id === editingOrderOriginalId.value); if (index !== -1) { editingOrder.totalAmount = editingOrderTotal.value; appData.orders[index] = JSON.parse(JSON.stringify(editingOrder)); saveData(); editModalOpen.value = false; } };
+                const sortedOrders = computed(() => [...appOrders.value].sort((a, b) => new Date(b.date) - new Date(a.date)));
 
-                // --- 匯出匯入 ---
-                const exportData = () => { const blob = new Blob([JSON.stringify(appData, null, 2)], { type: "application/json" }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `mezastar-ptcg-backup.json`; a.click(); URL.revokeObjectURL(url); };
-                const importData = (event) => { const file = event.target.files[0]; if (file) { const reader = new FileReader(); reader.onload = (e) => { try { Object.assign(appData, JSON.parse(e.target.result)); saveData(); alert('匯入成功！'); } catch (err) { alert('格式錯誤！'); } }; reader.readAsText(file); } };
+                const deleteOrder = (id) => {
+                    if (confirm('確定刪除此訂單？')) {
+                        appOrders.value = appOrders.value.filter(o => o.id !== id);
+                        saveOrdersToLocal();
+                    }
+                };
+
+                const openEditModal = (o) => { Object.assign(editingOrder, JSON.parse(JSON.stringify(o))); editingOrderOriginalId.value = o.id; editModalOpen.value = true; };
+                const editingOrderTotal = computed(() => editingOrder.items.reduce((sum, i) => sum + ((i.unitPrice||0) * (i.quantity||0)), 0));
+                
+                const saveEditOrder = () => {
+                    const idx = appOrders.value.findIndex(o => o.id === editingOrderOriginalId.value);
+                    if (idx !== -1) {
+                        editingOrder.totalAmount = editingOrderTotal.value;
+                        appOrders.value[idx] = JSON.parse(JSON.stringify(editingOrder));
+                        editModalOpen.value = false;
+                        saveOrdersToLocal();
+                        showToast("修改完成", "訂單已暫存，請記得點擊同步按鈕上傳", "success");
+                    }
+                };
+
+                const getStatusBadgeClass = (s) => {
+                    if(!s) return 'bg-slate-100 text-slate-700 border-slate-200';
+                    if(s === '新訂單') return 'bg-pink-100 text-pink-700 border-pink-200';
+                    if(s === '打包中') return 'bg-amber-100 text-amber-700 border-amber-200';
+                    if(s === '已出貨') return 'bg-blue-100 text-blue-700 border-blue-200';
+                    if(s === '已收款') return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+                    return 'bg-slate-100 text-slate-700 border-slate-200';
+                };
 
                 return {
-                    isLoggedIn, loginPassword, loginError, login, logout, changePassword, currentTab, switchTab, mobileMenuOpen,
-                    appData, newProduct, newPlatform, newStatus, currentOrder, currentItem, showDropdown, saveData, handleImageUpload, 
+                    isSyncing, apiError, isLoggedIn, loginPassword, login, logout, currentTab, switchTab, mobileMenuOpen,
+                    appConfig, appOrders, newProduct, newPlatform, newStatus, currentOrder, currentItem, showDropdown, saveConfigLocalDraft, handleImageUpload, exportConfigJson, 
                     addProduct, deleteProduct, addPlatform, deletePlatform, addStatus, deleteStatus, filteredProducts, selectProduct, hideDropdownDelay,
-                    currentItemSubtotal, addItemToOrder, removeItemFromOrder, orderTotalAmount, saveOrder, sortedOrders, deleteOrder, 
-                    editModalOpen, editingOrder, editingOrderTotal, openEditModal, saveEditOrder, exportData, importData,
-                    getStatusBadgeClass, getNextWorkflowStatus, advanceOrderStatus, importExcelProducts
+                    currentItemSubtotal, addItemToOrder, addOrderToList, removeItemFromOrder, orderTotalAmount, sortedOrders, deleteOrder, 
+                    fetchOrdersFromCloud, saveOrdersToCloud, editModalOpen, editingOrder, editingOrderTotal, openEditModal, saveEditOrder, getStatusBadgeClass, toast,
+                    resetCurrentOrder, formatDate
                 };
             }
         }).mount('#app');
