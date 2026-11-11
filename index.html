@@ -82,14 +82,40 @@
 
             <!-- 銷售與進度清單 -->
             <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
-                <div class="bg-slate-50 px-6 py-5 border-b border-slate-200 flex flex-wrap justify-between items-center gap-4">
-                    <h2 class="text-xl font-bold text-slate-800 flex items-center"><i class="fa-solid fa-list-ul mr-3 text-emerald-500"></i>銷售明細與出貨進度</h2>
+                
+                <div class="bg-slate-50 px-6 py-5 border-b border-slate-200">
                     
-                    <div class="flex flex-wrap bg-white rounded-lg p-1 shadow-sm border border-slate-200 text-sm font-medium gap-1">
-                        <button @click="currentFilter = 'all'" :class="currentFilter === 'all' ? 'bg-slate-800 text-white' : 'text-slate-600 hover:bg-slate-100'" class="px-3 py-1.5 rounded-md transition">全部</button>
-                        <button v-for="st in appConfig.statuses" :key="st.id" @click="currentFilter = st.name" :class="currentFilter === st.name ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'" class="px-3 py-1.5 rounded-md transition">
-                            {{ st.name }}
-                        </button>
+                    <!-- 標題與篩選按鈕列 (已移除按鈕上的數字) -->
+                    <div class="flex flex-wrap justify-between items-center gap-4 mb-4">
+                        <h2 class="text-xl font-bold text-slate-800 flex items-center"><i class="fa-solid fa-list-ul mr-3 text-emerald-500"></i>銷售明細與出貨進度</h2>
+                        
+                        <div class="flex flex-wrap bg-white rounded-lg p-1 shadow-sm border border-slate-200 text-sm font-medium gap-1">
+                            <button @click="currentFilter = 'all'" :class="currentFilter === 'all' ? 'bg-slate-800 text-white' : 'text-slate-600 hover:bg-slate-100'" class="px-4 py-1.5 rounded-md transition flex items-center">
+                                全部
+                            </button>
+                            <button v-for="st in appConfig.statuses" :key="st.id" @click="currentFilter = st.name" :class="currentFilter === st.name ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'" class="px-4 py-1.5 rounded-md transition flex items-center">
+                                {{ st.name }}
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 數量統計小儀表板 (已套用色彩邏輯) -->
+                    <div class="flex flex-wrap gap-4 items-center bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-sm">
+                        <div class="flex items-center gap-3 pr-5 border-r border-slate-200">
+                            <div class="w-10 h-10 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-lg"><i class="fa-solid fa-boxes-stacked"></i></div>
+                            <div>
+                                <div class="text-xs text-slate-400 font-bold mb-0.5">總售出項目</div>
+                                <div class="font-extrabold text-slate-700 text-xl leading-none">{{ totalSoldQuantity }} <span class="text-xs font-medium text-slate-500">件</span></div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex-1 flex flex-wrap gap-3 items-center">
+                            <!-- 這裡動態綁定 getStatusStyle 讓顏色跟下方清單狀態完全一致 -->
+                            <div v-for="st in appConfig.statuses" :key="st.id" :class="getStatusStyle(st.name)" class="flex flex-col border px-4 py-2 rounded-lg min-w-[70px]">
+                                <span class="opacity-80 text-[10px] font-bold mb-0.5">{{ st.name }}</span>
+                                <span class="font-extrabold text-lg leading-none">{{ statusCounts[st.name] || 0 }}</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -215,7 +241,6 @@
                 const pendingAmount = computed(() => appOrders.value.filter(o => !o.status || (!o.status.includes('已收款') && !o.status.includes('已完成'))).reduce((sum, o) => sum + (o.totalAmount || 0), 0));
                 const currentTotalAmount = computed(() => collectedAmount.value + pendingAmount.value);
                 
-                // ⭐️ NaN 防呆：確保目標金額至少為 1，絕不除以零
                 const targetVal = computed(() => {
                     const val = Number(appConfig.targetAmount);
                     return (!isNaN(val) && val > 0) ? val : 1;
@@ -254,6 +279,19 @@
                     return list.sort((a, b) => new Date(b.date) - new Date(a.date));
                 });
 
+                const totalSoldQuantity = computed(() => {
+                    return flattenedItems.value.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0);
+                });
+
+                const statusCounts = computed(() => {
+                    const counts = {};
+                    flattenedItems.value.forEach(item => {
+                        const st = item.status || '未分類';
+                        counts[st] = (counts[st] || 0) + (Number(item.quantity) || 1);
+                    });
+                    return counts;
+                });
+
                 const filteredItems = computed(() => {
                     if (currentFilter.value === 'all') return flattenedItems.value;
                     return flattenedItems.value.filter(item => item.status === currentFilter.value);
@@ -272,7 +310,8 @@
                     isLoading, apiError, appConfig, currentTotalAmount, remainingAmount, 
                     isTargetReached, totalProgressPct, collectedAmount, pendingAmount, 
                     cappedCollectedProgress, cappedPendingProgress, currentFilter, 
-                    filteredItems, getStatusStyle, formatDate, collectedProgressPct 
+                    filteredItems, getStatusStyle, formatDate, collectedProgressPct,
+                    totalSoldQuantity, statusCounts
                 };
             }
         }).mount('#app');
