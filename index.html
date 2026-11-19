@@ -50,33 +50,58 @@
                 <!-- 金額進度條與數據指標 -->
                 <div class="flex-1 w-full space-y-5">
                     <div>
-                        <div class="flex flex-wrap justify-between items-end gap-2 mb-2">
+                        <div class="flex flex-wrap justify-between items-end gap-2 mb-3">
                             <div>
-                                <span class="text-xs font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md">目前累積金額</span>
+                                <span class="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2.5 py-1 rounded-md">已收款實際入帳</span>
                                 <div class="text-3xl sm:text-4xl font-black text-slate-800 mt-2">
-                                    NT$ {{ totalRevenue.toLocaleString() }}
+                                    NT$ {{ paidRevenue.toLocaleString() }}
                                     <span class="text-sm sm:text-base font-medium text-slate-400 ml-1">/ NT$ {{ Number(appConfig.targetAmount || 0).toLocaleString() }}</span>
                                 </div>
                             </div>
                             <div class="text-right">
-                                <span class="text-2xl sm:text-3xl font-black text-emerald-600">{{ progressPercent }}%</span>
-                                <span class="block text-xs text-slate-400">達成率</span>
+                                <span class="text-2xl sm:text-3xl font-black text-emerald-600">{{ paidPercent }}%</span>
+                                <span class="block text-xs text-slate-400">已收款達成率（含處理中 {{ totalPercent }}%）</span>
                             </div>
                         </div>
 
-                        <!-- 進度條 -->
-                        <div class="w-full h-4 bg-slate-100 rounded-full overflow-hidden p-0.5 border border-slate-200/80">
-                            <div class="h-full rounded-full bg-gradient-to-r from-blue-500 via-indigo-500 to-emerald-500 transition-all duration-700"
-                                 :style="{ width: Math.min(progressPercent, 100) + '%' }"></div>
+                        <!-- 雙色圖例說明 -->
+                        <div class="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs mb-2">
+                            <div class="flex items-center gap-1.5">
+                                <span class="w-3 h-3 rounded-sm bg-emerald-500 inline-block"></span>
+                                <span class="text-slate-600">已收款：<strong class="text-emerald-700">NT$ {{ paidRevenue.toLocaleString() }}</strong> ({{ paidPercent }}%)</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="w-3 h-3 rounded-sm bg-amber-400 inline-block"></span>
+                                <span class="text-slate-600">處理中（未收款）：<strong class="text-amber-700">NT$ {{ unpaidRevenue.toLocaleString() }}</strong> ({{ unpaidPercent }}%)</span>
+                            </div>
                         </div>
-                        <div class="flex justify-between text-xs text-slate-500 mt-2">
-                            <span v-if="remainingAmount > 0">距離目標還差 <strong class="text-slate-700">NT$ {{ remainingAmount.toLocaleString() }}</strong></span>
-                            <span v-else class="text-emerald-600 font-bold"><i class="fa-solid fa-trophy mr-1"></i>已達成重組目標金額！</span>
+
+                        <!-- 雙色進度條 -->
+                        <div class="w-full h-4 bg-slate-100 rounded-full overflow-hidden p-0.5 border border-slate-200/80 flex">
+                            <div class="h-full bg-emerald-500 transition-all duration-700"
+                                 :class="unpaidBarWidth > 0 ? 'rounded-l-full' : 'rounded-full'"
+                                 :style="{ width: paidBarWidth + '%' }"
+                                 :title="'已收款：NT$ ' + paidRevenue.toLocaleString()"></div>
+                            <div v-if="unpaidBarWidth > 0"
+                                 class="h-full bg-amber-400 transition-all duration-700"
+                                 :class="paidBarWidth > 0 ? 'rounded-r-full' : 'rounded-full'"
+                                 :style="{ width: unpaidBarWidth + '%' }"
+                                 :title="'處理中（未收款）：NT$ ' + unpaidRevenue.toLocaleString()"></div>
+                        </div>
+
+                        <div class="flex flex-wrap justify-between items-center gap-2 text-xs text-slate-500 mt-2">
+                            <div>
+                                <span v-if="remainingPaidAmount > 0">距離已收款目標還差 <strong class="text-slate-700">NT$ {{ remainingPaidAmount.toLocaleString() }}</strong></span>
+                                <span v-else class="text-emerald-600 font-bold"><i class="fa-solid fa-trophy mr-1"></i>已達成重組目標金額！</span>
+                                <span v-if="unpaidRevenue > 0 && remainingPaidAmount > 0" class="text-slate-400 ml-1">
+                                    （若含處理中款項則{{ remainingTotalAmount > 0 ? '還差 NT$ ' + remainingTotalAmount.toLocaleString() : '已達標' }}）
+                                </span>
+                            </div>
                             <span v-if="lastUpdatedText">更新時間：{{ lastUpdatedText }}</span>
                         </div>
                     </div>
 
-                    <!-- 統計卡片：售出總項目 + 訂單筆數 -->
+                    <!-- 統計卡片：售出總項目 + 訂單筆數 + 已收款訂單 -->
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 pt-2 border-t border-slate-100">
                         <div class="bg-slate-50 rounded-2xl p-3.5 sm:p-4 border border-slate-200/60">
                             <div class="text-xs font-bold text-slate-500 flex items-center gap-1.5">
@@ -111,7 +136,7 @@
 
         <!-- 訂單列表區塊 -->
         <section class="bg-white rounded-3xl shadow-sm border border-slate-200/80 p-5 sm:p-6">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-5 pb-4 border-b border-slate-100">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
                 <div>
                     <h2 class="text-lg sm:text-xl font-bold text-slate-800 flex items-center gap-2">
                         <i class="fa-solid fa-list-ul text-blue-600"></i>
@@ -130,6 +155,23 @@
                         <i class="fa-solid fa-circle-xmark"></i>
                     </button>
                 </div>
+            </div>
+
+            <!-- 狀態分類自動篩選列 -->
+            <div class="flex flex-wrap items-center gap-2 mb-5 pb-4 border-b border-slate-100">
+                <span class="text-xs font-bold text-slate-400 mr-1"><i class="fa-solid fa-filter mr-1"></i>狀態篩選：</span>
+                <button type="button" @click="selectedStatus = 'ALL'"
+                    :class="selectedStatus === 'ALL' ? 'bg-slate-800 text-white border-slate-800 shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'"
+                    class="px-3 py-1.5 rounded-xl text-xs font-bold border transition flex items-center gap-1.5">
+                    <span>全部</span>
+                    <span :class="selectedStatus === 'ALL' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'" class="px-1.5 py-0.5 rounded-md text-[11px]">{{ appOrders.length }}</span>
+                </button>
+                <button type="button" v-for="st in statusFilterOptions" :key="st.name" @click="selectedStatus = st.name"
+                    :class="selectedStatus === st.name ? getActiveFilterButtonClass(st.name) : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'"
+                    class="px-3 py-1.5 rounded-xl text-xs font-bold border transition flex items-center gap-1.5">
+                    <span>{{ st.name }}</span>
+                    <span :class="selectedStatus === st.name ? 'bg-white/25 text-current' : 'bg-slate-100 text-slate-500'" class="px-1.5 py-0.5 rounded-md text-[11px]">{{ st.count }}</span>
+                </button>
             </div>
 
             <!-- 載入中狀態 -->
@@ -207,14 +249,15 @@
                             </td>
 
                             <!-- 該筆訂單總額 -->
-                            <td class="p-3.5 text-right font-extrabold text-emerald-600 text-base whitespace-nowrap">
+                            <td class="p-3.5 text-right font-extrabold text-base whitespace-nowrap"
+                                :class="isOrderPaid(order) ? 'text-emerald-600' : 'text-amber-600'">
                                 NT$ {{ getOrderTotal(order).toLocaleString() }}
                             </td>
                         </tr>
 
                         <tr v-if="!filteredOrders || filteredOrders.length === 0">
                             <td colspan="4" class="py-12 text-center text-slate-400">
-                                <span v-if="searchQuery">找不到符合「{{ searchQuery }}」的訂單紀錄。</span>
+                                <span v-if="searchQuery || selectedStatus !== 'ALL'">找不到符合篩選條件的訂單紀錄。</span>
                                 <span v-else>目前尚無公開訂單紀錄。</span>
                             </td>
                         </tr>
@@ -246,6 +289,7 @@
             setup() {
                 const isLoading = ref(false);
                 const searchQuery = ref('');
+                const selectedStatus = ref('ALL');
                 const lastUpdatedText = ref('');
                 const expandedOrders = ref([]);
 
@@ -283,20 +327,50 @@
                     return 0;
                 };
 
-                const totalRevenue = computed(() => {
-                    return appOrders.value.reduce((sum, order) => sum + getOrderTotal(order), 0);
+                const isOrderPaid = (order) => {
+                    return Boolean(order && order.status && (order.status.includes('收款') || order.status.includes('完成')));
+                };
+
+                const paidRevenue = computed(() => {
+                    return appOrders.value.reduce((sum, order) => isOrderPaid(order) ? sum + getOrderTotal(order) : sum, 0);
                 });
 
-                const remainingAmount = computed(() => {
+                const unpaidRevenue = computed(() => {
+                    return appOrders.value.reduce((sum, order) => !isOrderPaid(order) ? sum + getOrderTotal(order) : sum, 0);
+                });
+
+                const totalRevenue = computed(() => paidRevenue.value + unpaidRevenue.value);
+
+                const remainingPaidAmount = computed(() => {
+                    const target = Number(appConfig.targetAmount) || 0;
+                    return Math.max(0, target - paidRevenue.value);
+                });
+
+                const remainingTotalAmount = computed(() => {
                     const target = Number(appConfig.targetAmount) || 0;
                     return Math.max(0, target - totalRevenue.value);
                 });
 
-                const progressPercent = computed(() => {
+                const paidPercent = computed(() => {
+                    const target = Number(appConfig.targetAmount) || 0;
+                    if (target <= 0) return 100;
+                    return Math.round((paidRevenue.value / target) * 1000) / 10;
+                });
+
+                const unpaidPercent = computed(() => {
+                    const target = Number(appConfig.targetAmount) || 0;
+                    if (target <= 0) return 0;
+                    return Math.round((unpaidRevenue.value / target) * 1000) / 10;
+                });
+
+                const totalPercent = computed(() => {
                     const target = Number(appConfig.targetAmount) || 0;
                     if (target <= 0) return 100;
                     return Math.round((totalRevenue.value / target) * 1000) / 10;
                 });
+
+                const paidBarWidth = computed(() => Math.min(paidPercent.value, 100));
+                const unpaidBarWidth = computed(() => Math.min(unpaidPercent.value, Math.max(0, 100 - paidBarWidth.value)));
 
                 const totalItemsSold = computed(() => {
                     return appOrders.value.reduce((total, order) => {
@@ -306,7 +380,28 @@
                 });
 
                 const completedOrdersCount = computed(() => {
-                    return appOrders.value.filter(o => o.status && (o.status.includes('收款') || o.status.includes('完成'))).length;
+                    return appOrders.value.filter(o => isOrderPaid(o)).length;
+                });
+
+                const statusFilterOptions = computed(() => {
+                    const statusNames = [];
+                    if (Array.isArray(appConfig.statuses)) {
+                        appConfig.statuses.forEach(s => {
+                            if (s && s.name && !statusNames.includes(s.name)) {
+                                statusNames.push(s.name);
+                            }
+                        });
+                    }
+                    appOrders.value.forEach(o => {
+                        const st = o.status || '處理中';
+                        if (!statusNames.includes(st)) {
+                            statusNames.push(st);
+                        }
+                    });
+                    return statusNames.map(name => ({
+                        name,
+                        count: appOrders.value.filter(o => (o.status || '處理中') === name).length
+                    }));
                 });
 
                 const sortedOrders = computed(() => {
@@ -314,9 +409,13 @@
                 });
 
                 const filteredOrders = computed(() => {
+                    let list = sortedOrders.value;
+                    if (selectedStatus.value !== 'ALL') {
+                        list = list.filter(o => (o.status || '處理中') === selectedStatus.value);
+                    }
                     const q = searchQuery.value.trim().toLowerCase();
-                    if (!q) return sortedOrders.value;
-                    return sortedOrders.value.filter(o => {
+                    if (!q) return list;
+                    return list.filter(o => {
                         const matchId = o.id && o.id.toLowerCase().includes(q);
                         const matchPlatform = o.platform && o.platform.toLowerCase().includes(q);
                         const matchStatus = o.status && o.status.toLowerCase().includes(q);
@@ -343,6 +442,15 @@
                     if (s.includes('出貨') || s.includes('寄出')) return 'bg-blue-50 text-blue-700 border-blue-200';
                     if (s.includes('收款') || s.includes('完成')) return 'bg-emerald-50 text-emerald-700 border-emerald-200';
                     return 'bg-purple-50 text-purple-700 border-purple-200';
+                };
+
+                const getActiveFilterButtonClass = (s) => {
+                    if (!s) return 'bg-slate-700 text-white border-slate-700 shadow-sm';
+                    if (s.includes('新')) return 'bg-pink-600 text-white border-pink-600 shadow-sm';
+                    if (s.includes('打包') || s.includes('處理')) return 'bg-amber-500 text-white border-amber-500 shadow-sm';
+                    if (s.includes('出貨') || s.includes('寄出')) return 'bg-blue-600 text-white border-blue-600 shadow-sm';
+                    if (s.includes('收款') || s.includes('完成')) return 'bg-emerald-600 text-white border-emerald-600 shadow-sm';
+                    return 'bg-purple-600 text-white border-purple-600 shadow-sm';
                 };
 
                 const loadAllData = async () => {
@@ -395,20 +503,31 @@
                 return {
                     isLoading,
                     searchQuery,
+                    selectedStatus,
                     lastUpdatedText,
                     appConfig,
                     appOrders,
+                    isOrderPaid,
+                    paidRevenue,
+                    unpaidRevenue,
                     totalRevenue,
-                    remainingAmount,
-                    progressPercent,
+                    remainingPaidAmount,
+                    remainingTotalAmount,
+                    paidPercent,
+                    unpaidPercent,
+                    totalPercent,
+                    paidBarWidth,
+                    unpaidBarWidth,
                     totalItemsSold,
                     completedOrdersCount,
+                    statusFilterOptions,
                     filteredOrders,
                     formatDate,
                     getOrderTotal,
                     toggleOrderExpand,
                     isOrderExpanded,
                     getStatusBadgeClass,
+                    getActiveFilterButtonClass,
                     loadAllData
                 };
             }
