@@ -54,8 +54,17 @@
                     <i class="fa-solid fa-bolt text-yellow-400 text-2xl"></i><span class="font-bold text-xl text-white tracking-wide">看板後台</span>
                 </div>
                 <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-                    <a @click="switchTab('orders')" :class="currentTab === 'orders' ? 'bg-blue-600 text-white shadow-md' : 'hover:bg-slate-800 hover:text-white'" class="flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer transition font-medium"><i class="fa-solid fa-file-invoice-dollar w-5 text-center"></i>訂單與雲端同步</a>
-                    <a @click="switchTab('options')" :class="currentTab === 'options' ? 'bg-emerald-600 text-white shadow-md' : 'hover:bg-slate-800 hover:text-white'" class="flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer transition font-medium"><i class="fa-solid fa-list-check w-5 text-center"></i>靜態設定編輯器</a>
+                    <a @click="switchTab('orderList')" :class="currentTab === 'orderList' ? 'bg-blue-600 text-white shadow-md' : 'hover:bg-slate-800 hover:text-white'" class="flex items-center justify-between px-4 py-3 rounded-lg cursor-pointer transition font-medium">
+                        <span class="flex items-center gap-3"><i class="fa-solid fa-file-invoice-dollar w-5 text-center"></i>當前訂單列表</span>
+                        <span class="text-xs px-2 py-0.5 rounded-full" :class="currentTab === 'orderList' ? 'bg-blue-500 text-white' : 'bg-slate-800 text-slate-400'">{{ appOrders.length }}</span>
+                    </a>
+                    <a @click="switchTab('newOrder')" :class="currentTab === 'newOrder' ? 'bg-indigo-600 text-white shadow-md' : 'hover:bg-slate-800 hover:text-white'" class="flex items-center justify-between px-4 py-3 rounded-lg cursor-pointer transition font-medium">
+                        <span class="flex items-center gap-3"><i class="fa-solid fa-cart-plus w-5 text-center"></i>建立新訂單</span>
+                        <span v-if="currentOrder.items.length > 0" class="text-xs px-2 py-0.5 rounded-full bg-amber-500 text-white font-bold">{{ currentOrder.items.length }}</span>
+                    </a>
+                    <a @click="switchTab('options')" :class="currentTab === 'options' ? 'bg-emerald-600 text-white shadow-md' : 'hover:bg-slate-800 hover:text-white'" class="flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer transition font-medium">
+                        <i class="fa-solid fa-list-check w-5 text-center"></i>靜態設定編輯器
+                    </a>
                 </nav>
                 <div class="p-4 border-t border-slate-800 space-y-3">
                     <a href="index.html" target="_blank" class="flex items-center justify-center gap-2 w-full px-4 py-2 bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700 hover:text-white transition text-sm"><i class="fa-solid fa-eye"></i> 預覽看板</a>
@@ -65,17 +74,19 @@
 
             <main class="flex-1 p-4 sm:p-6 md:p-10 overflow-x-hidden max-w-6xl mx-auto w-full">
                 
-                <!-- 1. 訂單管理 -->
-                <div v-show="currentTab === 'orders'" class="space-y-6 sm:space-y-8">
-                    
+                <!-- 1. 當前訂單列表 -->
+                <div v-show="currentTab === 'orderList'" class="space-y-6">
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-l-4 border-blue-600 pl-3">
                         <div>
-                            <h2 class="text-xl sm:text-2xl font-bold text-slate-800">訂單編輯與同步</h2>
-                            <p class="text-xs text-slate-500 mt-0.5">新增、修改或點擊狀態皆會自動同步至雲端。</p>
+                            <h2 class="text-xl sm:text-2xl font-bold text-slate-800">當前訂單列表與雲端同步</h2>
+                            <p class="text-xs text-slate-500 mt-0.5">點擊狀態、修改或刪除訂單皆會自動同步至雲端。</p>
                         </div>
                         <div class="flex flex-wrap gap-2 w-full sm:w-auto">
                             <div v-if="apiError" class="bg-red-100 text-red-700 px-3 py-2 rounded-lg font-bold text-xs sm:text-sm flex items-center"><i class="fa-solid fa-plug-circle-xmark mr-1.5"></i>雲端斷線</div>
                             
+                            <button @click="switchTab('newOrder')" class="flex-1 sm:flex-none justify-center bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-indigo-700 shadow-sm transition flex items-center">
+                                <i class="fa-solid fa-plus mr-1.5"></i>新增訂單
+                            </button>
                             <button @click="fetchOrdersFromCloud" :disabled="isSyncing" class="flex-1 sm:flex-none justify-center bg-blue-100 text-blue-700 px-4 py-2 rounded-lg font-bold text-sm hover:bg-blue-200 transition flex items-center">
                                 <i class="fa-solid fa-cloud-arrow-down mr-1.5" :class="{'fa-spin': isSyncing}"></i>重新抓取
                             </button>
@@ -85,150 +96,10 @@
                         </div>
                     </div>
 
-                    <!-- 建立新訂單 -->
-                    <div class="bg-white rounded-2xl shadow-sm border border-blue-100 overflow-hidden">
-                        <div class="bg-blue-50/50 px-4 sm:px-6 py-4 border-b border-blue-100 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-                            <h3 class="text-lg font-bold text-blue-800 flex items-center shrink-0"><i class="fa-solid fa-cart-plus mr-2"></i>建立新訂單</h3>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full lg:w-auto">
-                                <div>
-                                    <span class="text-xs text-blue-600 font-bold block mb-1">訂單編號 (可空白)</span>
-                                    <input type="text" v-model="currentOrder.id" placeholder="選填，可留白" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-blue-500 bg-white">
-                                </div>
-                                <div>
-                                    <span class="text-xs text-blue-600 font-bold block mb-1">日期</span>
-                                    <input type="date" v-model="currentOrder.date" required class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-blue-500 bg-white">
-                                </div>
-                                <div>
-                                    <span class="text-xs text-blue-600 font-bold block mb-1">平台</span>
-                                    <select v-model="currentOrder.platform" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-blue-500 bg-white">
-                                        <option value="">未選擇</option>
-                                        <option v-for="p in appConfig.platforms" :key="p.id" :value="p.name">{{ p.name }}</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <span class="text-xs text-blue-600 font-bold block mb-1">狀態</span>
-                                    <select v-model="currentOrder.status" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-blue-500 bg-white">
-                                        <option v-for="s in appConfig.statuses" :key="s.id" :value="s.name">{{ s.name }}</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="p-4 sm:p-6 space-y-5">
-                            <!-- 多選預設商品區塊 -->
-                            <div class="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
-                                    <span class="text-xs font-bold text-slate-600 flex items-center">
-                                        <i class="fa-solid fa-list-check mr-1.5 text-amber-500"></i>快速多選預設商品 (可點選多項後一次加入)：
-                                    </span>
-                                    <button v-if="appConfig.products && appConfig.products.length > 0" type="button" @click="addSelectedProductsToOrder" :disabled="selectedProductIds.length === 0"
-                                        :class="selectedProductIds.length > 0 ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm' : 'bg-slate-200 text-slate-400 cursor-not-allowed'"
-                                        class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 shrink-0">
-                                        <i class="fa-solid fa-plus"></i>加入已選商品 ({{ selectedProductIds.length }})
-                                    </button>
-                                </div>
-                                <div v-if="appConfig.products && appConfig.products.length > 0" class="flex flex-wrap gap-2">
-                                    <button type="button" v-for="prod in appConfig.products" :key="prod.id" @click="toggleProductSelection(prod.id)"
-                                        :class="selectedProductIds.includes(prod.id) ? 'bg-blue-50 border-blue-500 text-blue-700 ring-1 ring-blue-500' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'"
-                                        class="border px-3 py-2 rounded-lg text-xs font-bold shadow-sm transition flex items-center gap-2 select-none">
-                                        <i :class="selectedProductIds.includes(prod.id) ? 'fa-solid fa-square-check text-blue-600' : 'fa-regular fa-square text-slate-400'"></i>
-                                        <span>{{ prod.name }}</span>
-                                        <span class="text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">${{ prod.price }}</span>
-                                    </button>
-                                </div>
-                                <div v-else class="text-xs text-slate-400 flex flex-wrap items-center gap-2">
-                                    <span>目前尚未設定預設商品。</span>
-                                    <button type="button" @click="reloadConfigFromServer" class="text-blue-600 hover:underline font-bold">重新讀取 config.json</button>
-                                    <span>或前往「靜態設定編輯器」新增。</span>
-                                </div>
-                            </div>
-
-                            <!-- 手動單筆輸入表單 -->
-                            <form @submit.prevent="addItemToOrder" class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end bg-slate-50/70 p-4 rounded-xl border border-slate-200">
-                                <div class="sm:col-span-5">
-                                    <label class="block text-xs font-bold text-slate-600 mb-1">自訂商品名稱</label>
-                                    <input type="text" v-model="currentItem.name" placeholder="輸入商品名稱" required class="w-full p-2.5 text-sm border border-slate-200 rounded-lg outline-none focus:border-blue-500 bg-white" autocomplete="off">
-                                </div>
-                                <div class="sm:col-span-3">
-                                    <label class="block text-xs font-bold text-slate-600 mb-1">單價</label>
-                                    <input type="number" v-model.number="currentItem.unitPrice" placeholder="0" required min="0" class="w-full p-2.5 text-sm border border-slate-200 rounded-lg outline-none focus:border-blue-500 bg-white">
-                                </div>
-                                <div class="sm:col-span-2">
-                                    <label class="block text-xs font-bold text-slate-600 mb-1">數量</label>
-                                    <input type="number" v-model.number="currentItem.quantity" required min="1" class="w-full p-2.5 text-sm border border-slate-200 rounded-lg text-center outline-none focus:border-blue-500 bg-white">
-                                </div>
-                                <div class="sm:col-span-2">
-                                    <button type="submit" class="w-full bg-blue-100 text-blue-700 px-4 py-2.5 rounded-lg text-sm font-bold hover:bg-blue-200 transition">加入明細</button>
-                                </div>
-                            </form>
-
-                            <!-- 待建立明細列表 (支援總價自動均分 & 直接修改單價與數量) -->
-                            <div v-if="currentOrder.items.length > 0" class="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-                                <!-- 整筆總價均分列 -->
-                                <div class="bg-amber-50/80 px-4 py-2.5 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                                    <span class="text-xs font-bold text-amber-800 flex items-center">
-                                        <i class="fa-solid fa-calculator mr-1.5 text-amber-600"></i>輸入單筆訂單總價，自動平均到底下項目單價：
-                                    </span>
-                                    <div class="flex items-center gap-2">
-                                        <input type="number" v-model.number="bundleTotalPrice" @keyup.enter="distributeBundlePrice" min="0" placeholder="輸入整筆總價" class="w-32 sm:w-36 px-2.5 py-1.5 text-sm border border-amber-200 rounded-lg outline-none focus:border-amber-500 bg-white">
-                                        <button type="button" @click="distributeBundlePrice" class="bg-amber-500 hover:bg-amber-600 text-white px-3.5 py-1.5 rounded-lg text-xs font-bold transition shadow-sm shrink-0">
-                                            套用均分
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div class="overflow-x-auto">
-                                    <table class="w-full text-left text-sm min-w-[480px]">
-                                        <thead class="bg-slate-100 border-b text-slate-600">
-                                            <tr>
-                                                <th class="p-3 pl-4">已選商品明細 (可直接調整單價與數量)</th>
-                                                <th class="p-3 text-right w-28">單價</th>
-                                                <th class="p-3 text-center w-24">數量</th>
-                                                <th class="p-3 text-right w-28">小計</th>
-                                                <th class="p-3 text-center w-14">移除</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr v-for="(item, index) in currentOrder.items" :key="index" class="border-b last:border-b-0 hover:bg-slate-50">
-                                                <td class="p-2.5 pl-4 font-medium">
-                                                    <input type="text" v-model="item.name" class="w-full border border-transparent hover:border-slate-200 focus:border-blue-500 focus:bg-white bg-transparent rounded px-2 py-1 outline-none transition">
-                                                </td>
-                                                <td class="p-2.5 text-right">
-                                                    <input type="number" v-model.number="item.unitPrice" min="0" class="w-24 border border-slate-200 focus:border-blue-500 rounded px-2 py-1 text-right outline-none bg-white">
-                                                </td>
-                                                <td class="p-2.5 text-center">
-                                                    <input type="number" v-model.number="item.quantity" min="1" class="w-16 border border-slate-200 focus:border-blue-500 rounded px-2 py-1 text-center font-bold outline-none bg-white">
-                                                </td>
-                                                <td class="p-2.5 text-right text-blue-600 font-bold whitespace-nowrap">${{ ((item.unitPrice || 0) * (item.quantity || 0)).toLocaleString() }}</td>
-                                                <td class="p-2.5 text-center">
-                                                    <button type="button" @click="removeItemFromOrder(index)" class="text-red-400 hover:text-red-600 p-1"><i class="fa-solid fa-times"></i></button>
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                            
-                            <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
-                                <div class="text-sm text-slate-500 text-center sm:text-left">本筆訂單共 <span class="font-bold text-blue-600">{{ currentOrder.items.length }}</span> 項明細</div>
-                                <div class="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
-                                    <div class="text-center sm:text-right">
-                                        <span class="text-sm font-medium text-slate-500 mr-2">總金額:</span>
-                                        <span class="text-2xl font-bold text-red-500">NT$ {{ orderTotalAmount.toLocaleString() }}</span>
-                                    </div>
-                                    <button type="button" @click="addOrderToList" class="w-full sm:w-auto justify-center bg-emerald-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-emerald-700 shadow-md flex items-center transition">
-                                        <i class="fa-solid fa-check mr-2"></i>完成並建立訂單
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 歷史訂單列表 -->
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6">
                         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 border-b pb-3">
                             <h3 class="text-lg font-bold flex items-center">
-                                <i class="fa-solid fa-list mr-2 text-slate-500"></i>當前訂單列表
+                                <i class="fa-solid fa-list mr-2 text-slate-500"></i>訂單紀錄
                                 <span class="ml-2 text-xs font-normal text-slate-400">({{ filteredOrders.length }} / {{ appOrders.length }} 筆)</span>
                             </h3>
                             
@@ -281,7 +152,6 @@
                                         <!-- 明細摘要 (完整顯示名稱與數量，多項時可展開) -->
                                         <td class="p-3 text-slate-700">
                                             <template v-if="order.items && order.items.length > 0">
-                                                <!-- 單筆明細或未展開狀態 -->
                                                 <div v-if="order.items.length === 1 || !isOrderExpanded(order)">
                                                     <div class="font-medium leading-snug break-words">
                                                         <span>{{ order.items[0].name }}</span>
@@ -294,7 +164,6 @@
                                                     </button>
                                                 </div>
 
-                                                <!-- 已展開狀態：顯示全部細項 -->
                                                 <div v-else class="space-y-1.5">
                                                     <div v-for="(item, iIdx) in order.items" :key="iIdx" class="flex items-start justify-between gap-2 text-xs bg-slate-50/80 border border-slate-200/80 rounded-lg px-2.5 py-1.5">
                                                         <span class="font-medium text-slate-700 leading-snug break-words flex-1">{{ iIdx + 1 }}. {{ item.name }}</span>
@@ -333,7 +202,174 @@
                     </div>
                 </div>
 
-                <!-- 2. 靜態設定編輯器 -->
+                <!-- 2. 建立新訂單 -->
+                <div v-show="currentTab === 'newOrder'" class="space-y-6">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-l-4 border-indigo-600 pl-3">
+                        <div>
+                            <h2 class="text-xl sm:text-2xl font-bold text-slate-800">建立新訂單</h2>
+                            <p class="text-xs text-slate-500 mt-0.5">選擇預設商品或自訂品項，建立完成後會自動寫入雲端。</p>
+                        </div>
+                        <button @click="switchTab('orderList')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-lg font-bold text-sm transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-arrow-left"></i>返回訂單列表
+                        </button>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-sm border border-indigo-100 overflow-hidden">
+                        <div class="bg-indigo-50/60 px-4 sm:px-6 py-4 border-b border-indigo-100 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                            <h3 class="text-lg font-bold text-indigo-800 flex items-center shrink-0"><i class="fa-solid fa-receipt mr-2"></i>訂單基本資料</h3>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full lg:w-auto">
+                                <div>
+                                    <span class="text-xs text-indigo-600 font-bold block mb-1">訂單編號 (可空白)</span>
+                                    <input type="text" v-model="currentOrder.id" placeholder="選填，可留白" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-indigo-500 bg-white">
+                                </div>
+                                <div>
+                                    <span class="text-xs text-indigo-600 font-bold block mb-1">日期</span>
+                                    <input type="date" v-model="currentOrder.date" required class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-indigo-500 bg-white">
+                                </div>
+                                <div>
+                                    <span class="text-xs text-indigo-600 font-bold block mb-1">平台</span>
+                                    <select v-model="currentOrder.platform" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-indigo-500 bg-white">
+                                        <option value="">未選擇</option>
+                                        <option v-for="p in appConfig.platforms" :key="p.id" :value="p.name">{{ p.name }}</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <span class="text-xs text-indigo-600 font-bold block mb-1">狀態</span>
+                                    <select v-model="currentOrder.status" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-indigo-500 bg-white">
+                                        <option v-for="s in appConfig.statuses" :key="s.id" :value="s.name">{{ s.name }}</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="p-4 sm:p-6 space-y-5">
+                            <!-- 多選預設商品區塊 -->
+                            <div class="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                                    <span class="text-xs font-bold text-slate-600 flex items-center">
+                                        <i class="fa-solid fa-list-check mr-1.5 text-amber-500"></i>快速多選預設商品 (可點選多項後一次加入)：
+                                    </span>
+                                    <button v-if="appConfig.products && appConfig.products.length > 0" type="button" @click="addSelectedProductsToOrder" :disabled="selectedProductIds.length === 0"
+                                        :class="selectedProductIds.length > 0 ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm' : 'bg-slate-200 text-slate-400 cursor-not-allowed'"
+                                        class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 shrink-0">
+                                        <i class="fa-solid fa-plus"></i>加入已選商品 ({{ selectedProductIds.length }})
+                                    </button>
+                                </div>
+
+                                <!-- 系列快速篩選（若有設定系列時顯示） -->
+                                <div v-if="productSeriesList.length > 0" class="flex flex-wrap items-center gap-1.5 mb-3 pb-2.5 border-b border-slate-200/80">
+                                    <span class="text-[11px] font-bold text-slate-400 mr-1">系列篩選：</span>
+                                    <button type="button" @click="selectedProductSeriesFilter = 'ALL'"
+                                        :class="selectedProductSeriesFilter === 'ALL' ? 'bg-slate-700 text-white' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'"
+                                        class="px-2.5 py-1 rounded-md text-[11px] font-bold transition">
+                                        全部 ({{ appConfig.products.length }})
+                                    </button>
+                                    <button type="button" v-for="sr in productSeriesList" :key="sr" @click="selectedProductSeriesFilter = sr"
+                                        :class="selectedProductSeriesFilter === sr ? 'bg-purple-600 text-white' : 'bg-white text-purple-700 border border-purple-200 hover:bg-purple-50'"
+                                        class="px-2.5 py-1 rounded-md text-[11px] font-bold transition">
+                                        {{ sr }}
+                                    </button>
+                                </div>
+
+                                <div v-if="filteredPresetProducts.length > 0" class="flex flex-wrap gap-2">
+                                    <button type="button" v-for="prod in filteredPresetProducts" :key="prod.id" @click="toggleProductSelection(prod.id)"
+                                        :class="selectedProductIds.includes(prod.id) ? 'bg-indigo-50 border-indigo-500 text-indigo-700 ring-1 ring-indigo-500' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'"
+                                        class="border px-3 py-2 rounded-lg text-xs font-bold shadow-sm transition flex items-center gap-2 select-none">
+                                        <i :class="selectedProductIds.includes(prod.id) ? 'fa-solid fa-square-check text-indigo-600' : 'fa-regular fa-square text-slate-400'"></i>
+                                        <span v-if="prod.series" class="text-[10px] font-bold bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">{{ prod.series }}</span>
+                                        <span>{{ prod.name }}</span>
+                                        <span class="text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">${{ prod.price }}</span>
+                                    </button>
+                                </div>
+                                <div v-else class="text-xs text-slate-400 flex flex-wrap items-center gap-2">
+                                    <span>目前尚未設定預設商品。</span>
+                                    <button type="button" @click="reloadConfigFromServer" class="text-blue-600 hover:underline font-bold">重新讀取 config.json</button>
+                                    <span>或前往「靜態設定編輯器」新增。</span>
+                                </div>
+                            </div>
+
+                            <!-- 手動單筆輸入表單 -->
+                            <form @submit.prevent="addItemToOrder" class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end bg-slate-50/70 p-4 rounded-xl border border-slate-200">
+                                <div class="sm:col-span-5">
+                                    <label class="block text-xs font-bold text-slate-600 mb-1">自訂商品名稱</label>
+                                    <input type="text" v-model="currentItem.name" placeholder="輸入商品名稱" required class="w-full p-2.5 text-sm border border-slate-200 rounded-lg outline-none focus:border-indigo-500 bg-white" autocomplete="off">
+                                </div>
+                                <div class="sm:col-span-3">
+                                    <label class="block text-xs font-bold text-slate-600 mb-1">單價</label>
+                                    <input type="number" v-model.number="currentItem.unitPrice" placeholder="0" required min="0" class="w-full p-2.5 text-sm border border-slate-200 rounded-lg outline-none focus:border-indigo-500 bg-white">
+                                </div>
+                                <div class="sm:col-span-2">
+                                    <label class="block text-xs font-bold text-slate-600 mb-1">數量</label>
+                                    <input type="number" v-model.number="currentItem.quantity" required min="1" class="w-full p-2.5 text-sm border border-slate-200 rounded-lg text-center outline-none focus:border-indigo-500 bg-white">
+                                </div>
+                                <div class="sm:col-span-2">
+                                    <button type="submit" class="w-full bg-indigo-100 text-indigo-700 px-4 py-2.5 rounded-lg text-sm font-bold hover:bg-indigo-200 transition">加入明細</button>
+                                </div>
+                            </form>
+
+                            <!-- 待建立明細列表 (支援總價自動均分 & 直接修改單價與數量) -->
+                            <div v-if="currentOrder.items.length > 0" class="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                                <div class="bg-amber-50/80 px-4 py-2.5 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                    <span class="text-xs font-bold text-amber-800 flex items-center">
+                                        <i class="fa-solid fa-calculator mr-1.5 text-amber-600"></i>輸入單筆訂單總價，自動平均到底下項目單價：
+                                    </span>
+                                    <div class="flex items-center gap-2">
+                                        <input type="number" v-model.number="bundleTotalPrice" @keyup.enter="distributeBundlePrice" min="0" placeholder="輸入整筆總價" class="w-32 sm:w-36 px-2.5 py-1.5 text-sm border border-amber-200 rounded-lg outline-none focus:border-amber-500 bg-white">
+                                        <button type="button" @click="distributeBundlePrice" class="bg-amber-500 hover:bg-amber-600 text-white px-3.5 py-1.5 rounded-lg text-xs font-bold transition shadow-sm shrink-0">
+                                            套用均分
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-left text-sm min-w-[480px]">
+                                        <thead class="bg-slate-100 border-b text-slate-600">
+                                            <tr>
+                                                <th class="p-3 pl-4">已選商品明細 (可直接調整單價與數量)</th>
+                                                <th class="p-3 text-right w-28">單價</th>
+                                                <th class="p-3 text-center w-24">數量</th>
+                                                <th class="p-3 text-right w-28">小計</th>
+                                                <th class="p-3 text-center w-14">移除</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr v-for="(item, index) in currentOrder.items" :key="index" class="border-b last:border-b-0 hover:bg-slate-50">
+                                                <td class="p-2.5 pl-4 font-medium">
+                                                    <input type="text" v-model="item.name" class="w-full border border-transparent hover:border-slate-200 focus:border-indigo-500 focus:bg-white bg-transparent rounded px-2 py-1 outline-none transition">
+                                                </td>
+                                                <td class="p-2.5 text-right">
+                                                    <input type="number" v-model.number="item.unitPrice" min="0" class="w-24 border border-slate-200 focus:border-indigo-500 rounded px-2 py-1 text-right outline-none bg-white">
+                                                </td>
+                                                <td class="p-2.5 text-center">
+                                                    <input type="number" v-model.number="item.quantity" min="1" class="w-16 border border-slate-200 focus:border-indigo-500 rounded px-2 py-1 text-center font-bold outline-none bg-white">
+                                                </td>
+                                                <td class="p-2.5 text-right text-indigo-600 font-bold whitespace-nowrap">${{ ((item.unitPrice || 0) * (item.quantity || 0)).toLocaleString() }}</td>
+                                                <td class="p-2.5 text-center">
+                                                    <button type="button" @click="removeItemFromOrder(index)" class="text-red-400 hover:text-red-600 p-1"><i class="fa-solid fa-times"></i></button>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                                <div class="text-sm text-slate-500 text-center sm:text-left">本筆訂單共 <span class="font-bold text-indigo-600">{{ currentOrder.items.length }}</span> 項明細</div>
+                                <div class="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
+                                    <div class="text-center sm:text-right">
+                                        <span class="text-sm font-medium text-slate-500 mr-2">總金額:</span>
+                                        <span class="text-2xl font-bold text-red-500">NT$ {{ orderTotalAmount.toLocaleString() }}</span>
+                                    </div>
+                                    <button type="button" @click="addOrderToList" class="w-full sm:w-auto justify-center bg-emerald-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-emerald-700 shadow-md flex items-center transition">
+                                        <i class="fa-solid fa-check mr-2"></i>完成並建立訂單
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. 靜態設定編輯器 -->
                 <div v-show="currentTab === 'options'" class="space-y-6">
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6 border-l-4 border-emerald-600 pl-3">
                         <h2 class="text-xl sm:text-2xl font-bold text-slate-800">靜態設定編輯器 (產生 config.json)</h2>
@@ -366,9 +402,9 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <!-- 欄 1：預設商品 -->
-                        <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                        <!-- 欄 1：預設商品 (含系列欄位與直接編輯) -->
+                        <div class="lg:col-span-6 bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
                             <div class="flex justify-between items-center mb-4">
                                 <h3 class="font-bold text-slate-700 flex items-center"><i class="fa-solid fa-box-open mr-2 text-emerald-600"></i>預設商品 ({{ appConfig.products.length }})</h3>
                                 <label class="cursor-pointer bg-emerald-100 text-emerald-700 hover:bg-emerald-200 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center shadow-sm">
@@ -376,24 +412,90 @@
                                     <input type="file" accept=".xlsx, .xls" class="hidden" @change="importProductsFromExcel">
                                 </label>
                             </div>
-                            <form @submit.prevent="addProduct" class="flex flex-col gap-3 mb-4 p-3 bg-slate-50 rounded-lg border border-slate-100">
-                                <input type="text" v-model="newProduct.name" placeholder="商品名稱" required class="w-full p-2 text-sm border rounded">
-                                <div class="flex gap-2"><input type="number" v-model.number="newProduct.price" placeholder="售價" required min="0" class="w-full p-2 text-sm border rounded"><button type="submit" class="bg-emerald-600 text-white px-4 rounded text-sm"><i class="fa-solid fa-plus"></i></button></div>
+
+                            <!-- 新增預設商品表單 -->
+                            <form @submit.prevent="addProduct" class="flex flex-col gap-2.5 mb-4 p-3.5 bg-slate-50 rounded-xl border border-slate-200/80">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    <div>
+                                        <input type="text" v-model="newProduct.series" list="seriesSuggestions" placeholder="系列 (選填，如：星塵三彈)" class="w-full p-2 text-sm border border-slate-200 rounded-lg bg-white outline-none focus:border-emerald-500">
+                                    </div>
+                                    <div>
+                                        <input type="text" v-model="newProduct.name" placeholder="商品名稱 *" required class="w-full p-2 text-sm border border-slate-200 rounded-lg bg-white outline-none focus:border-emerald-500">
+                                    </div>
+                                </div>
+                                <div class="flex gap-2">
+                                    <input type="number" v-model.number="newProduct.price" placeholder="售價 *" required min="0" class="w-full p-2 text-sm border border-slate-200 rounded-lg bg-white outline-none focus:border-emerald-500">
+                                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-bold shrink-0 transition flex items-center gap-1.5">
+                                        <i class="fa-solid fa-plus"></i>新增
+                                    </button>
+                                </div>
                             </form>
-                            <div class="flex flex-col gap-2 max-h-80 overflow-y-auto pr-1">
-                                <div v-for="prod in appConfig.products" :key="prod.id" class="border border-slate-200 rounded-lg px-3 py-2 text-sm flex justify-between items-center"><span class="font-medium text-slate-700 truncate mr-2">{{ prod.name }}</span><div class="flex items-center gap-3 shrink-0"><span class="text-slate-500 bg-slate-100 px-2 py-0.5 rounded font-mono">${{ prod.price }}</span><button @click="deleteProduct(prod.id)" class="text-red-400"><i class="fa-solid fa-times"></i></button></div></div>
+
+                            <datalist id="seriesSuggestions">
+                                <option v-for="sr in productSeriesList" :key="sr" :value="sr"></option>
+                            </datalist>
+
+                            <!-- 已建立的預設商品列表 (支援編輯) -->
+                            <div class="flex flex-col gap-2 max-h-96 overflow-y-auto pr-1">
+                                <div v-for="prod in appConfig.products" :key="prod.id" class="border border-slate-200 rounded-xl p-2.5 text-sm transition" :class="editingProductId === prod.id ? 'bg-amber-50/70 border-amber-300' : 'hover:bg-slate-50'">
+                                    
+                                    <!-- 檢視模式 -->
+                                    <div v-if="editingProductId !== prod.id" class="flex justify-between items-center gap-2">
+                                        <div class="flex items-center gap-2 min-w-0 flex-1">
+                                            <span v-if="prod.series" class="text-[11px] font-bold bg-purple-100 text-purple-700 px-2 py-0.5 rounded shrink-0">{{ prod.series }}</span>
+                                            <span class="font-medium text-slate-700 break-words">{{ prod.name }}</span>
+                                        </div>
+                                        <div class="flex items-center gap-2 shrink-0">
+                                            <span class="text-slate-600 bg-slate-100 px-2 py-0.5 rounded font-mono font-bold">${{ prod.price }}</span>
+                                            <button type="button" @click="startEditProduct(prod)" class="text-blue-500 hover:text-blue-700 hover:bg-blue-50 p-1.5 rounded transition" title="編輯商品">
+                                                <i class="fa-solid fa-pen"></i>
+                                            </button>
+                                            <button type="button" @click="deleteProduct(prod.id)" class="text-red-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded transition" title="刪除商品">
+                                                <i class="fa-solid fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- 編輯模式 -->
+                                    <div v-else class="space-y-2">
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                            <div>
+                                                <label class="block text-[11px] font-bold text-slate-500 mb-0.5">系列</label>
+                                                <input type="text" v-model="editingProductForm.series" list="seriesSuggestions" placeholder="系列名稱" class="w-full px-2.5 py-1.5 text-xs border border-amber-300 rounded-lg bg-white outline-none focus:border-emerald-500">
+                                            </div>
+                                            <div>
+                                                <label class="block text-[11px] font-bold text-slate-500 mb-0.5">商品名稱</label>
+                                                <input type="text" v-model="editingProductForm.name" placeholder="商品名稱" class="w-full px-2.5 py-1.5 text-xs border border-amber-300 rounded-lg bg-white outline-none focus:border-emerald-500">
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center justify-between gap-2">
+                                            <div class="flex items-center gap-1.5 flex-1">
+                                                <span class="text-xs font-bold text-slate-500">售價 $</span>
+                                                <input type="number" v-model.number="editingProductForm.price" min="0" class="w-28 px-2.5 py-1.5 text-xs border border-amber-300 rounded-lg bg-white outline-none focus:border-emerald-500">
+                                            </div>
+                                            <div class="flex items-center gap-1.5">
+                                                <button type="button" @click="cancelEditProduct" class="px-2.5 py-1.5 text-xs font-bold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-100">取消</button>
+                                                <button type="button" @click="saveEditProduct" class="px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 shadow-sm">儲存</button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                                <div v-if="appConfig.products.length === 0" class="text-center text-xs text-slate-400 py-6">
+                                    尚未建立任何預設商品。
+                                </div>
                             </div>
                         </div>
 
                         <!-- 欄 2：平台管理 -->
-                        <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
+                        <div class="lg:col-span-3 bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
                             <h3 class="font-bold text-slate-700 mb-4 flex items-center"><i class="fa-solid fa-store mr-2 text-indigo-600"></i>平台管理</h3>
                             <form @submit.prevent="addPlatform" class="flex gap-2 mb-4 p-3 bg-slate-50 rounded-lg border"><input type="text" v-model="newPlatform" placeholder="平台名稱" required class="w-full p-2 text-sm border rounded"><button type="submit" class="bg-indigo-600 text-white px-4 rounded text-sm"><i class="fa-solid fa-plus"></i></button></form>
                             <div class="flex flex-col gap-2"><div v-for="plat in appConfig.platforms" :key="plat.id" class="border rounded-lg px-3 py-2 text-sm flex justify-between items-center"><span class="font-medium">{{ plat.name }}</span><button @click="deletePlatform(plat.id)" class="text-red-400"><i class="fa-solid fa-times"></i></button></div></div>
                         </div>
 
                         <!-- 欄 3：訂單狀態選項 -->
-                        <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
+                        <div class="lg:col-span-3 bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
                             <h3 class="font-bold text-slate-700 mb-4 flex items-center"><i class="fa-solid fa-tags mr-2 text-amber-600"></i>訂單狀態選項</h3>
                             <form @submit.prevent="addStatus" class="flex gap-2 mb-4 p-3 bg-slate-50 rounded-lg border"><input type="text" v-model="newStatus" placeholder="狀態名稱" required class="w-full p-2 text-sm border rounded"><button type="submit" class="bg-amber-500 text-white px-4 rounded text-sm"><i class="fa-solid fa-plus"></i></button></form>
                             <div class="flex flex-col gap-2"><div v-for="stat in appConfig.statuses" :key="stat.id" class="border rounded-lg px-3 py-2 text-sm flex justify-between items-center"><span class="font-medium">{{ stat.name }}</span><button @click="deleteStatus(stat.id)" class="text-red-400"><i class="fa-solid fa-times"></i></button></div></div>
@@ -467,11 +569,12 @@
                 const apiError = ref(false);
                 const isLoggedIn = ref(false);
                 const loginPassword = ref('');
-                const currentTab = ref('orders');
+                const currentTab = ref('orderList');
                 const mobileMenuOpen = ref(false);
                 const searchQuery = ref('');
                 const bundleTotalPrice = ref(null);
                 const expandedOrders = ref([]);
+                const selectedProductSeriesFilter = ref('ALL');
                 
                 const toast = reactive({ show: false, title: '', message: '', type: 'success' });
                 let toastTimer = null;
@@ -490,7 +593,9 @@
                 const appConfig = reactive(JSON.parse(JSON.stringify(defaultConfig)));
                 const appOrders = ref([]);
 
-                const newProduct = reactive({ name: '', price: null });
+                const newProduct = reactive({ series: '', name: '', price: null });
+                const editingProductId = ref(null);
+                const editingProductForm = reactive({ id: null, series: '', name: '', price: 0 });
                 const newPlatform = ref('');
                 const newStatus = ref('');
 
@@ -498,6 +603,7 @@
                     if (Array.isArray(appConfig.products)) {
                         appConfig.products = appConfig.products.map((p, idx) => ({
                             id: p.id ?? (Date.now() + idx),
+                            series: (p.series ?? '').trim(),
                             name: p.name ?? '',
                             price: Number(p.price ?? 0)
                         }));
@@ -517,6 +623,24 @@
                         }));
                     }
                 };
+
+                const productSeriesList = computed(() => {
+                    const set = new Set();
+                    if (Array.isArray(appConfig.products)) {
+                        appConfig.products.forEach(p => {
+                            if (p.series && p.series.trim()) {
+                                set.add(p.series.trim());
+                            }
+                        });
+                    }
+                    return Array.from(set);
+                });
+
+                const filteredPresetProducts = computed(() => {
+                    if (!Array.isArray(appConfig.products)) return [];
+                    if (selectedProductSeriesFilter.value === 'ALL') return appConfig.products;
+                    return appConfig.products.filter(p => (p.series || '').trim() === selectedProductSeriesFilter.value);
+                });
 
                 const formatDate = (dateStr) => {
                     if (!dateStr) return '';
@@ -660,6 +784,7 @@
 
                 const reloadConfigFromServer = async () => {
                     localStorage.removeItem('mezastarConfigDraft');
+                    editingProductId.value = null;
                     await loadConfigData(true);
                     resetCurrentOrder();
                     showToast("已重新載入", `已同步最新 config.json（共 ${appConfig.products.length} 項預設商品）`, "success");
@@ -718,12 +843,14 @@
                             
                             let count = 0;
                             json.forEach((row, index) => {
+                                const series = row['系列'] || row['series'] || row['Series'] || '';
                                 const name = row['商品名稱'] || row['name'] || row['名稱'] || row['Name'];
                                 const price = row['售價'] || row['price'] || row['價格'] || row['Price'];
                                 
                                 if (name && price !== undefined) {
                                     appConfig.products.push({ 
                                         id: Date.now() + index,
+                                        series: String(series).trim(),
                                         name: String(name).trim(), 
                                         price: Number(price) 
                                     });
@@ -735,7 +862,7 @@
                                 saveConfigLocalDraft();
                                 showToast("匯入成功", `已成功從 Excel 匯入 ${count} 筆商品資料！`, "success");
                             } else {
-                                showToast("匯入失敗", "找不到對應欄位，請確定 Excel 第一列有「商品名稱」與「售價」這兩個標題。", "error");
+                                showToast("匯入失敗", "找不到對應欄位，請確定 Excel 第一列有「商品名稱」與「售價」（可選填「系列」）。", "error");
                             }
                         } catch (err) {
                             showToast("解析失敗", "讀取 Excel 檔案時發生錯誤，請確認檔案格式是否正確。", "error");
@@ -831,8 +958,55 @@
                     }
                 };
 
-                const addProduct = () => { appConfig.products.push({ id: Date.now(), name: newProduct.name, price: newProduct.price }); saveConfigLocalDraft(); newProduct.name = ''; newProduct.price = null; };
-                const deleteProduct = (id) => { if(confirm('刪除？')) { appConfig.products = appConfig.products.filter(p => p.id !== id); saveConfigLocalDraft(); } };
+                const addProduct = () => {
+                    if (!newProduct.name.trim()) return;
+                    appConfig.products.push({
+                        id: Date.now(),
+                        series: (newProduct.series || '').trim(),
+                        name: newProduct.name.trim(),
+                        price: Number(newProduct.price || 0)
+                    });
+                    saveConfigLocalDraft();
+                    newProduct.series = '';
+                    newProduct.name = '';
+                    newProduct.price = null;
+                };
+
+                const startEditProduct = (prod) => {
+                    editingProductId.value = prod.id;
+                    editingProductForm.id = prod.id;
+                    editingProductForm.series = prod.series || '';
+                    editingProductForm.name = prod.name || '';
+                    editingProductForm.price = Number(prod.price || 0);
+                };
+
+                const cancelEditProduct = () => {
+                    editingProductId.value = null;
+                };
+
+                const saveEditProduct = () => {
+                    if (!editingProductForm.name.trim()) {
+                        showToast("欄位不完整", "商品名稱不可為空白。", "error");
+                        return;
+                    }
+                    const target = appConfig.products.find(p => p.id === editingProductId.value);
+                    if (target) {
+                        target.series = (editingProductForm.series || '').trim();
+                        target.name = editingProductForm.name.trim();
+                        target.price = Number(editingProductForm.price || 0);
+                        saveConfigLocalDraft();
+                    }
+                    editingProductId.value = null;
+                };
+
+                const deleteProduct = (id) => {
+                    if(confirm('刪除？')) {
+                        if (editingProductId.value === id) editingProductId.value = null;
+                        appConfig.products = appConfig.products.filter(p => p.id !== id);
+                        saveConfigLocalDraft();
+                    }
+                };
+
                 const addPlatform = () => { if (newPlatform.value.trim()) { appConfig.platforms.push({ id: Date.now(), name: newPlatform.value.trim() }); saveConfigLocalDraft(); newPlatform.value = ''; } };
                 const deletePlatform = (id) => { if(confirm('刪除？')) { appConfig.platforms = appConfig.platforms.filter(p => p.id !== id); saveConfigLocalDraft(); } };
                 const addStatus = () => { if (newStatus.value.trim()) { appConfig.statuses.push({ id: Date.now(), name: newStatus.value.trim() }); saveConfigLocalDraft(); newStatus.value = ''; } };
@@ -861,6 +1035,7 @@
                     saveOrdersToLocal();
                     resetCurrentOrder();
                     saveOrdersToCloud(true);
+                    switchTab('orderList');
                 };
 
                 const sortedOrders = computed(() => [...appOrders.value].sort((a, b) => new Date(b.date) - new Date(a.date)));
@@ -930,7 +1105,9 @@
 
                 return {
                     isSyncing, apiError, isLoggedIn, loginPassword, login, logout, currentTab, switchTab, mobileMenuOpen, searchQuery, bundleTotalPrice,
-                    appConfig, appOrders, newProduct, newPlatform, newStatus, currentOrder, currentItem, saveConfigLocalDraft, handleImageUpload, exportConfigJson, 
+                    appConfig, appOrders, newProduct, editingProductId, editingProductForm, startEditProduct, cancelEditProduct, saveEditProduct,
+                    productSeriesList, selectedProductSeriesFilter, filteredPresetProducts,
+                    newPlatform, newStatus, currentOrder, currentItem, saveConfigLocalDraft, handleImageUpload, exportConfigJson, 
                     importProductsFromExcel, reloadConfigFromServer,
                     addProduct, deleteProduct, addPlatform, deletePlatform, addStatus, deleteStatus, 
                     addItemToOrder, addOrderToList, removeItemFromOrder, orderTotalAmount, sortedOrders, filteredOrders, deleteOrder, 
