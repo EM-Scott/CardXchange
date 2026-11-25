@@ -4,464 +4,464 @@
   "cloudApiUrl": "https://script.google.com/macros/s/AKfycbzez4caZkxaVZq38IlkqgTQUAZe0JzWZ66Vx0OpcyenUSHoxew_WO-F7hF6EXGWNYQS/exec",
   "products": [
     {
-      "id": 1795577490321,
+      "id": 1795577944530,
       "series": "MEZASTAR 星辰 第一彈",
       "name": "全套",
       "price": 1500
     },
     {
-      "id": 1795577490322,
+      "id": 1795577944531,
       "series": "MEZASTAR 星辰 第二彈",
       "name": "全套",
       "price": 1500
     },
     {
-      "id": 1795577490323,
+      "id": 1795577944532,
       "series": "MEZASTAR 星辰 第三彈",
       "name": "全套",
       "price": 1500
     },
     {
-      "id": 1795577490324,
+      "id": 1795577944533,
       "series": "MEZASTAR 星辰 第四彈",
       "name": "全套",
       "price": 1500
     },
     {
-      "id": 1795577490325,
+      "id": 1795577944534,
       "series": "MEZASTAR 銀河 第一彈",
       "name": "全套",
       "price": 1500
     },
     {
-      "id": 1795577490326,
+      "id": 1795577944535,
       "series": "MEZASTAR 銀河 第二彈",
       "name": "全套",
       "price": 1500
     },
     {
-      "id": 1795577490327,
+      "id": 1795577944536,
       "series": "MEZASTAR 銀河 第三彈",
       "name": "全套",
       "price": 1500
     },
     {
-      "id": 1795577490328,
+      "id": 1795577944537,
       "series": "MEZASTAR 星辰 第一彈",
       "name": "超夢",
       "price": 59
     },
     {
-      "id": 1795577490329,
+      "id": 1795577944538,
       "series": "MEZASTAR 星辰 第一彈",
       "name": "夢幻",
       "price": 59
     },
     {
-      "id": 1795577490330,
+      "id": 1795577944539,
       "series": "MEZASTAR 星辰 第一彈",
       "name": "蒼響",
       "price": 59
     },
     {
-      "id": 1795577490331,
+      "id": 1795577944540,
       "series": "MEZASTAR 星辰 第一彈",
       "name": "藏瑪然特",
       "price": 59
     },
     {
-      "id": 1795577490332,
+      "id": 1795577944541,
       "series": "MEZASTAR 星辰 第一彈",
       "name": "班基拉斯",
       "price": 59
     },
     {
-      "id": 1795577490333,
+      "id": 1795577944543,
       "series": "MEZASTAR 星辰 第一彈",
       "name": "巨金怪",
       "price": 59
     },
     {
-      "id": 1795577490334,
+      "id": 1795577944544,
       "series": "MEZASTAR 星辰 第一彈",
       "name": "密勒頓",
       "price": 59
     },
     {
-      "id": 1795577490335,
+      "id": 1795577944545,
       "series": "MEZASTAR 星辰 第一彈",
       "name": "妙蛙花",
       "price": 59
     },
     {
-      "id": 1795577490336,
+      "id": 1795577944546,
       "series": "MEZASTAR 星辰 第一彈",
       "name": "噴火龍",
       "price": 59
     },
     {
-      "id": 1795577490337,
+      "id": 1795577944547,
       "series": "MEZASTAR 星辰 第一彈",
       "name": "水箭龜",
       "price": 59
     },
     {
-      "id": 1795577490338,
+      "id": 1795577944548,
       "series": "MEZASTAR 星辰 第二彈",
       "name": "蓋歐卡",
       "price": 59
     },
     {
-      "id": 1795577490339,
+      "id": 1795577944549,
       "series": "MEZASTAR 星辰 第二彈",
       "name": "固拉多",
       "price": 59
     },
     {
-      "id": 1795577490340,
+      "id": 1795577944550,
       "series": "MEZASTAR 星辰 第二彈",
       "name": "故勒頓",
       "price": 59
     },
     {
-      "id": 1795577490341,
+      "id": 1795577944551,
       "series": "MEZASTAR 星辰 第二彈",
       "name": "皮卡丘",
       "price": 59
     },
     {
-      "id": 1795577490342,
+      "id": 1795577944552,
       "series": "MEZASTAR 星辰 第二彈",
       "name": "卡比獸",
       "price": 59
     },
     {
-      "id": 1795577490343,
+      "id": 1795577944553,
       "series": "MEZASTAR 星辰 第二彈",
       "name": "杖尾麟甲龍",
       "price": 59
     },
     {
-      "id": 1795577490344,
+      "id": 1795577944554,
       "series": "MEZASTAR 星辰 第二彈",
       "name": "沙奈朵",
       "price": 59
     },
     {
-      "id": 1795577490345,
+      "id": 1795577944555,
       "series": "MEZASTAR 星辰 第二彈",
       "name": "萊希拉姆",
       "price": 59
     },
     {
-      "id": 1795577490346,
+      "id": 1795577944556,
       "series": "MEZASTAR 星辰 第二彈",
       "name": "捷克羅姆",
       "price": 59
     },
     {
-      "id": 1795577490347,
+      "id": 1795577944557,
       "series": "MEZASTAR 星辰 第二彈",
       "name": "酋雷姆",
       "price": 59
     },
     {
-      "id": 1795577490348,
+      "id": 1795577944558,
       "series": "MEZASTAR 星辰 第三彈",
       "name": "洛奇亞",
       "price": 59
     },
     {
-      "id": 1795577490349,
+      "id": 1795577944559,
       "series": "MEZASTAR 星辰 第三彈",
       "name": "鳳王",
       "price": 59
     },
     {
-      "id": 1795577490351,
+      "id": 1795577944560,
       "series": "MEZASTAR 星辰 第三彈",
       "name": "索爾迦雷歐",
       "price": 59
     },
     {
-      "id": 1795577490352,
+      "id": 1795577944561,
       "series": "MEZASTAR 星辰 第三彈",
       "name": "露奈雅拉",
       "price": 59
     },
     {
-      "id": 1795577490353,
+      "id": 1795577944562,
       "series": "MEZASTAR 星辰 第三彈",
       "name": "甲賀忍蛙",
       "price": 59
     },
     {
-      "id": 1795577490354,
+      "id": 1795577944563,
       "series": "MEZASTAR 星辰 第三彈",
       "name": "捷拉奧拉",
       "price": 59
     },
     {
-      "id": 1795577490355,
+      "id": 1795577944564,
       "series": "MEZASTAR 星辰 第三彈",
       "name": "無極汰那",
       "price": 59
     },
     {
-      "id": 1795577490356,
+      "id": 1795577944565,
       "series": "MEZASTAR 星辰 第三彈",
       "name": "凱路迪歐",
       "price": 59
     },
     {
-      "id": 1795577490357,
+      "id": 1795577944566,
       "series": "MEZASTAR 星辰 第三彈",
       "name": "長毛巨魔",
       "price": 59
     },
     {
-      "id": 1795577490358,
+      "id": 1795577944567,
       "series": "MEZASTAR 星辰 第三彈",
       "name": "基格爾德",
       "price": 59
     },
     {
-      "id": 1795577490359,
+      "id": 1795577944568,
       "series": "MEZASTAR 星辰 第四彈",
       "name": "帝牙盧卡",
       "price": 59
     },
     {
-      "id": 1795577490360,
+      "id": 1795577944569,
       "series": "MEZASTAR 星辰 第四彈",
       "name": "帕路奇亞",
       "price": 59
     },
     {
-      "id": 1795577490361,
+      "id": 1795577944570,
       "series": "MEZASTAR 星辰 第四彈",
       "name": "哲爾尼亞斯",
       "price": 59
     },
     {
-      "id": 1795577490362,
+      "id": 1795577944571,
       "series": "MEZASTAR 星辰 第四彈",
       "name": "伊裴爾塔爾",
       "price": 59
     },
     {
-      "id": 1795577490363,
+      "id": 1795577944572,
       "series": "MEZASTAR 星辰 第四彈",
       "name": "白馬蕾冠王 （騎白馬的樣子）",
       "price": 59
     },
     {
-      "id": 1795577490364,
+      "id": 1795577944573,
       "series": "MEZASTAR 星辰 第四彈",
       "name": "黑馬蕾冠王 （騎白馬的樣子）",
       "price": 59
     },
     {
-      "id": 1795577490365,
+      "id": 1795577944574,
       "series": "MEZASTAR 星辰 第四彈",
       "name": "謎擬Ｑ",
       "price": 59
     },
     {
-      "id": 1795577490366,
+      "id": 1795577944575,
       "series": "MEZASTAR 星辰 第四彈",
       "name": "焰白酋雷姆",
       "price": 59
     },
     {
-      "id": 1795577490367,
+      "id": 1795577944576,
       "series": "MEZASTAR 星辰 第四彈",
       "name": "闇黑酋雷姆",
       "price": 59
     },
     {
-      "id": 1795577490368,
+      "id": 1795577944577,
       "series": "MEZASTAR 星辰 第四彈",
       "name": "烈空坐",
       "price": 59
     },
     {
-      "id": 1795577490369,
-      "series": "MEZASTAR 銀河 一彈",
+      "id": 1795577944578,
+      "series": "MEZASTAR 銀河 第一彈",
       "name": "轟擂金剛猩",
       "price": 59
     },
     {
-      "id": 1795577490370,
-      "series": "MEZASTAR 銀河 一彈",
+      "id": 1795577944579,
+      "series": "MEZASTAR 銀河 第一彈",
       "name": "閃焰王牌",
       "price": 59
     },
     {
-      "id": 1795577490371,
-      "series": "MEZASTAR 銀河 一彈",
+      "id": 1795577944580,
+      "series": "MEZASTAR 銀河 第一彈",
       "name": "千面避役",
       "price": 59
     },
     {
-      "id": 1795577490372,
-      "series": "MEZASTAR 銀河 一彈",
+      "id": 1795577944581,
+      "series": "MEZASTAR 銀河 第一彈",
       "name": "皮卡丘",
       "price": 59
     },
     {
-      "id": 1795577490373,
-      "series": "MEZASTAR 銀河 一彈",
+      "id": 1795577944582,
+      "series": "MEZASTAR 銀河 第一彈",
       "name": "雷公",
       "price": 59
     },
     {
-      "id": 1795577490374,
-      "series": "MEZASTAR 銀河 一彈",
+      "id": 1795577944583,
+      "series": "MEZASTAR 銀河 第一彈",
       "name": "炎帝",
       "price": 59
     },
     {
-      "id": 1795577490375,
-      "series": "MEZASTAR 銀河 一彈",
+      "id": 1795577944584,
+      "series": "MEZASTAR 銀河 第一彈",
       "name": "水君",
       "price": 59
     },
     {
-      "id": 1795577490376,
-      "series": "MEZASTAR 銀河 一彈",
+      "id": 1795577944585,
+      "series": "MEZASTAR 銀河 第一彈",
       "name": "超夢",
       "price": 59
     },
     {
-      "id": 1795577490377,
-      "series": "MEZASTAR 銀河 一彈",
+      "id": 1795577944586,
+      "series": "MEZASTAR 銀河 第一彈",
       "name": "阿爾宙斯",
       "price": 59
     },
     {
-      "id": 1795577490378,
-      "series": "MEZASTAR 銀河 一彈",
+      "id": 1795577944587,
+      "series": "MEZASTAR 銀河 第一彈",
       "name": "洗翠索羅亞克",
       "price": 59
     },
     {
-      "id": 1795577490379,
-      "series": "MEZASTAR 銀河 二彈",
+      "id": 1795577944588,
+      "series": "MEZASTAR 銀河 第二彈",
       "name": "蒼響",
       "price": 59
     },
     {
-      "id": 1795577490380,
-      "series": "MEZASTAR 銀河 二彈",
+      "id": 1795577944589,
+      "series": "MEZASTAR 銀河 第二彈",
       "name": "藏瑪然特",
       "price": 59
     },
     {
-      "id": 1795577490381,
-      "series": "MEZASTAR 銀河 二彈",
+      "id": 1795577944590,
+      "series": "MEZASTAR 銀河 第二彈",
       "name": "鋁鋼龍",
       "price": 59
     },
     {
-      "id": 1795577490382,
-      "series": "MEZASTAR 銀河 二彈",
+      "id": 1795577944591,
+      "series": "MEZASTAR 銀河 第二彈",
       "name": "噴火龍",
       "price": 59
     },
     {
-      "id": 1795577490383,
-      "series": "MEZASTAR 銀河 二彈",
+      "id": 1795577944592,
+      "series": "MEZASTAR 銀河 第二彈",
       "name": "薩戮德",
       "price": 59
     },
     {
-      "id": 1795577490384,
-      "series": "MEZASTAR 銀河 二彈",
+      "id": 1795577944593,
+      "series": "MEZASTAR 銀河 第二彈",
       "name": "路卡利歐",
       "price": 59
     },
     {
-      "id": 1795577490385,
-      "series": "MEZASTAR 銀河 二彈",
+      "id": 1795577944594,
+      "series": "MEZASTAR 銀河 第二彈",
       "name": "烈空坐",
       "price": 59
     },
     {
-      "id": 1795577490386,
-      "series": "MEZASTAR 銀河 二彈",
+      "id": 1795577944595,
+      "series": "MEZASTAR 銀河 第二彈",
       "name": "拉帝亞斯",
       "price": 59
     },
     {
-      "id": 1795577490387,
-      "series": "MEZASTAR 銀河 二彈",
+      "id": 1795577944596,
+      "series": "MEZASTAR 銀河 第二彈",
       "name": "拉帝歐斯",
       "price": 59
     },
     {
-      "id": 1795577490388,
-      "series": "MEZASTAR 銀河 二彈",
+      "id": 1795577944597,
+      "series": "MEZASTAR 銀河 第二彈",
       "name": "四顎針龍",
       "price": 59
     },
     {
-      "id": 1795577490389,
-      "series": "MEZASTAR 銀河 三彈",
+      "id": 1795577944598,
+      "series": "MEZASTAR 銀河 第三彈",
       "name": "故勒頓",
       "price": 59
     },
     {
-      "id": 1795577490390,
-      "series": "MEZASTAR 銀河 三彈",
+      "id": 1795577944599,
+      "series": "MEZASTAR 銀河 第三彈",
       "name": "密勒頓",
       "price": 59
     },
     {
-      "id": 1795577490391,
-      "series": "MEZASTAR 銀河 三彈",
+      "id": 1795577944600,
+      "series": "MEZASTAR 銀河 第三彈",
       "name": "哲爾尼亞斯",
       "price": 59
     },
     {
-      "id": 1795577490392,
-      "series": "MEZASTAR 銀河 三彈",
+      "id": 1795577944601,
+      "series": "MEZASTAR 銀河 第三彈",
       "name": "伊裴爾塔爾",
       "price": 59
     },
     {
-      "id": 1795577490393,
-      "series": "MEZASTAR 銀河 三彈",
+      "id": 1795577944602,
+      "series": "MEZASTAR 銀河 第三彈",
       "name": "基格爾德",
       "price": 59
     },
     {
-      "id": 1795577490394,
-      "series": "MEZASTAR 銀河 三彈",
+      "id": 1795577944603,
+      "series": "MEZASTAR 銀河 第三彈",
       "name": "雷吉奇卡斯",
       "price": 59
     },
     {
-      "id": 1795577490395,
-      "series": "MEZASTAR 銀河 三彈",
+      "id": 1795577944604,
+      "series": "MEZASTAR 銀河 第三彈",
       "name": "洛奇亞",
       "price": 59
     },
     {
-      "id": 1795577490396,
-      "series": "MEZASTAR 銀河 三彈",
+      "id": 1795577944605,
+      "series": "MEZASTAR 銀河 第三彈",
       "name": "鳳王",
       "price": 59
     },
     {
-      "id": 1795577490397,
-      "series": "MEZASTAR 銀河 三彈",
+      "id": 1795577944606,
+      "series": "MEZASTAR 銀河 第三彈",
       "name": "霜奶仙",
       "price": 59
     },
     {
-      "id": 1795577490398,
-      "series": "MEZASTAR 銀河 三彈",
+      "id": 1795577944607,
+      "series": "MEZASTAR 銀河 第三彈",
       "name": "堵攔熊",
       "price": 59
     }
