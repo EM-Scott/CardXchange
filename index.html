@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
@@ -92,7 +93,12 @@
                         <div class="flex flex-wrap justify-between items-center gap-2 text-xs text-slate-500 mt-2">
                             <div>
                                 <span v-if="remainingPaidAmount > 0">距離已收款目標還差 <strong class="text-slate-700">NT$ {{ remainingPaidAmount.toLocaleString() }}</strong></span>
-                                <span v-else class="text-emerald-600 font-bold"><i class="fa-solid fa-trophy mr-1"></i>已達成重組目標金額！</span>
+                                <button v-else type="button" @click="launchFireworks"
+                                    class="inline-flex items-center gap-1.5 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-lg font-bold transition"
+                                    title="點擊再放一次煙火">
+                                    <i class="fa-solid fa-trophy text-amber-500"></i>
+                                    <span>已達成重組目標金額！（點擊慶祝）</span>
+                                </button>
                                 <span v-if="unpaidRevenue > 0 && remainingPaidAmount > 0" class="text-slate-400 ml-1">
                                     （若含處理中款項則{{ remainingTotalAmount > 0 ? '還差 NT$ ' + remainingTotalAmount.toLocaleString() : '已達標' }}）
                                 </span>
@@ -297,6 +303,7 @@
                 const selectedStatus = ref('ALL');
                 const lastUpdatedText = ref('');
                 const expandedOrders = ref([]);
+                const hasCelebrated = ref(false);
 
                 const appConfig = reactive({
                     targetAmount: 10000,
@@ -308,6 +315,33 @@
                 });
 
                 const appOrders = ref([]);
+
+                const launchFireworks = () => {
+                    if (typeof confetti !== 'function') return;
+                    const duration = 3000;
+                    const animationEnd = Date.now() + duration;
+                    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
+                    const randomInRange = (min, max) => Math.random() * (max - min) + min;
+
+                    const interval = setInterval(() => {
+                        const timeLeft = animationEnd - Date.now();
+                        if (timeLeft <= 0) {
+                            clearInterval(interval);
+                            return;
+                        }
+                        const particleCount = 50 * (timeLeft / duration);
+                        confetti({
+                            ...defaults,
+                            particleCount,
+                            origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
+                        });
+                        confetti({
+                            ...defaults,
+                            particleCount,
+                            origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
+                        });
+                    }, 250);
+                };
 
                 const formatDate = (dateStr) => {
                     if (!dateStr) return '';
@@ -514,6 +548,12 @@
                     const now = new Date();
                     lastUpdatedText.value = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
                     isLoading.value = false;
+
+                    const target = Number(appConfig.targetAmount) || 0;
+                    if (target > 0 && paidRevenue.value >= target && !hasCelebrated.value) {
+                        hasCelebrated.value = true;
+                        launchFireworks();
+                    }
                 };
 
                 onMounted(() => {
@@ -527,6 +567,7 @@
                     lastUpdatedText,
                     appConfig,
                     appOrders,
+                    launchFireworks,
                     getItemSeries,
                     isOrderPaid,
                     paidRevenue,
